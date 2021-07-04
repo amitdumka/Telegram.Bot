@@ -25,15 +25,15 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
         public async Task Should_Send_Video()
         {
             Message message;
-            using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Videos.MoonLanding))
+            await using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Videos.MoonLanding))
             {
                 message = await BotClient.SendVideoAsync(
-                    /* chatId: */ _fixture.SupergroupChat.Id,
-                    /* video: */ stream,
-                    /* duration: */ 104,
-                    /* width */ 320,
-                    /* height: */ 240,
-                    /* caption: */ "Moon Landing"
+                    chatId: _fixture.SupergroupChat.Id,
+                    video: new InputMedia(stream, "moon-landing.mp4"),
+                    duration: 104,
+                    width: 320,
+                    height: 240,
+                    caption: "Moon Landing"
                 );
             }
 
@@ -45,6 +45,7 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
             Assert.Equal(320, message.Video.Width);
             Assert.Equal(240, message.Video.Height);
             Assert.Equal("video/mp4", message.Video.MimeType);
+            Assert.Equal("moon-landing.mp4", message.Video.FileName);
             Assert.NotEmpty(message.Video.Thumb.FileId);
             Assert.NotEmpty(message.Video.Thumb.FileUniqueId);
             Assert.True(message.Video.Thumb.FileSize > 200);
@@ -58,13 +59,13 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
         public async Task Should_Send_Video_Note()
         {
             Message message;
-            using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Videos.GoldenRatio))
+            await using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Videos.GoldenRatio))
             {
                 message = await BotClient.SendVideoNoteAsync(
-                    /* chatId: */ _fixture.SupergroupChat.Id,
-                    /* videoNote: */ stream,
-                    /* duration: */ 28,
-                    /* length */ 240
+                    chatId:  _fixture.SupergroupChat.Id,
+                    videoNote:  stream,
+                    duration:  28,
+                    length:  240
                 );
             }
 
@@ -85,14 +86,14 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
         public async Task Should_Send_Video_With_Thumb()
         {
             Message message;
-            using (Stream
+            await using (Stream
                 stream1 = System.IO.File.OpenRead(Constants.PathToFile.Videos.MoonLanding),
                 stream2 = System.IO.File.OpenRead(Constants.PathToFile.Thumbnail.TheAbilityToBreak)
             )
             {
                 message = await BotClient.SendVideoAsync(
-                    /* chatId: */ _fixture.SupergroupChat,
-                    /* video: */ stream1,
+                    chatId: _fixture.SupergroupChat,
+                    video: stream1,
                     thumb: new InputMedia(stream2, "thumb.jpg")
                 );
             }
@@ -110,14 +111,14 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
         public async Task Should_Send_Video_Note_With_Thumb()
         {
             Message message;
-            using (Stream
+            await using (Stream
                 stream1 = System.IO.File.OpenRead(Constants.PathToFile.Videos.GoldenRatio),
                 stream2 = System.IO.File.OpenRead(Constants.PathToFile.Thumbnail.Video)
             )
             {
                 message = await BotClient.SendVideoNoteAsync(
-                    /* chatId: */ _fixture.SupergroupChat.Id,
-                    /* videoNote: */ stream1,
+                    chatId:  _fixture.SupergroupChat.Id,
+                    videoNote:  stream1,
                     thumb: new InputMedia(stream2, "thumbnail.jpg")
                 );
             }

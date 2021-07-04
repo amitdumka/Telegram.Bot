@@ -7,34 +7,28 @@ namespace Telegram.Bot.Tests.Integ.Framework
 {
     internal static class Extensions
     {
-        public static User GetUser(this Update update)
-        {
-            switch (update.Type)
+        public static User GetUser(this Update update) =>
+            update.Type switch
             {
-                case UpdateType.Message:
-                    return update.Message.From;
-                case UpdateType.InlineQuery:
-                    return update.InlineQuery.From;
-                case UpdateType.CallbackQuery:
-                    return update.CallbackQuery.From;
-                case UpdateType.PreCheckoutQuery:
-                    return update.PreCheckoutQuery.From;
-                case UpdateType.ShippingQuery:
-                    return update.ShippingQuery.From;
-                case UpdateType.ChosenInlineResult:
-                    return update.ChosenInlineResult.From;
-                case UpdateType.PollAnswer:
-                    return update.PollAnswer.User;
-                default:
-                    throw new ArgumentException("Unsupported update type {0}.", update.Type.ToString());
-            }
-        }
+                UpdateType.Message => update.Message.From,
+                UpdateType.InlineQuery => update.InlineQuery.From,
+                UpdateType.CallbackQuery => update.CallbackQuery.From,
+                UpdateType.PreCheckoutQuery => update.PreCheckoutQuery.From,
+                UpdateType.ShippingQuery => update.ShippingQuery.From,
+                UpdateType.ChosenInlineResult => update.ChosenInlineResult.From,
+                UpdateType.PollAnswer => update.PollAnswer.User,
+                UpdateType.MyChatMember => update.MyChatMember.NewChatMember.User,
+                UpdateType.ChatMember => update.ChatMember.NewChatMember.User,
+                UpdateType.EditedMessage => update.EditedMessage.From,
+                _ => throw new ArgumentException("Unsupported update type {0}.", update.Type.ToString())
+            };
 
-        public static string GetTesters(this UpdateReceiver updateReceiver)
-        {
-            return string.Join(", ",
+        public static string GetTesters(this UpdateReceiver updateReceiver) =>
+            string.Join(", ",
                 updateReceiver.AllowedUsernames.Select(username => username.Replace("_", "\\_"))
             );
-        }
+
+        public static string GetSafeUsername(this User user) => user.Username.Replace("_", "\\_");
+        public static string GetSafeUsername(this Chat chat) => chat.Username.Replace("_", "\\_");
     }
 }

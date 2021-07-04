@@ -46,9 +46,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                 new InlineQueryResultArticle(
                     id: "article:bot-api",
                     title: "Telegram Bot API",
-                    inputMessageContent: new InputTextMessageContent(
-                        "https://core.telegram.org/bots/api")
-                )
+                    inputMessageContent: new InputTextMessageContent("https://core.telegram.org/bots/api"))
                 {
                     Description = "The Bot API is an HTTP-based interface created for developers",
                 },
@@ -72,7 +70,47 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, chosenResultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithContact,
+        [OrderedFact("Should get message from an inline query with ViaBot property set")]
+        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
+        public async Task Should_Get_Message_From_Inline_Query_With_ViaBot()
+        {
+            await _fixture.SendTestInstructionsAsync(
+                "1. Start an inline query\n" +
+                "2. Wait for bot to answer it\n" +
+                "3. Choose the answer",
+                startInlineQuery: true
+            );
+
+            Update iqUpdate = await _fixture.UpdateReceiver.GetInlineQueryUpdateAsync();
+
+            InlineQueryResultBase[] results =
+            {
+                new InlineQueryResultArticle(
+                    id: "article:bot-api",
+                    title: "Telegram Bot API",
+                    inputMessageContent: new InputTextMessageContent("https://core.telegram.org/bots/api"))
+                {
+                    Description = "The Bot API is an HTTP-based interface created for developers",
+                },
+            };
+
+            await BotClient.AnswerInlineQueryAsync(
+                inlineQueryId: iqUpdate.InlineQuery.Id,
+                results: results,
+                cacheTime: 0
+            );
+
+            Update messageUpdate = (await _fixture.UpdateReceiver.GetUpdatesAsync(
+                update => update.Message?.ViaBot != null,
+                updateTypes: UpdateType.Message
+            )).First();
+
+            Assert.Equal(MessageType.Text, messageUpdate.Message.Type);
+            Assert.NotNull(messageUpdate.Message.ViaBot);
+            Assert.Equal(_fixture.BotUser.Id, messageUpdate.Message.ViaBot.Id);
+        }
+
+        [OrderedFact("Should answer inline query with a contact",
             Skip = "Due to unexpected rate limiting errors")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Contact()
@@ -87,10 +125,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             const string resultId = "contact:john-doe";
             InlineQueryResultBase[] results =
             {
-                new InlineQueryResultContact(
-                    id: resultId,
-                    phoneNumber: "+1234567",
-                    firstName: "John")
+                new InlineQueryResultContact(id: resultId, phoneNumber: "+1234567", firstName: "John")
                 {
                     LastName = "Doe"
                 }
@@ -111,7 +146,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithLocation)]
+        [OrderedFact("Should answer inline query with a location")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Location()
         {
@@ -147,7 +182,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithVenue)]
+        [OrderedFact("Should answer inline query with a venue")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Venue()
         {
@@ -184,7 +219,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithPhoto)]
+        [OrderedFact("Should answer inline query with a photo")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Photo()
         {
@@ -200,11 +235,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             const string caption = "Rainbow Girl";
             InlineQueryResultBase[] results =
             {
-                new InlineQueryResultPhoto(
-                    id: resultId,
-                    photoUrl: url,
-                    thumbUrl: url
-                )
+                new InlineQueryResultPhoto(id: resultId, photoUrl: url, thumbUrl: url)
                 {
                     Caption = caption
                 }
@@ -226,12 +257,12 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(caption, messageUpdate.Message.Caption);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedPhoto)]
+        [OrderedFact("Should send a photo and answer inline query with a cached photo using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Photo()
         {
             Message photoMessage;
-            using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Photos.Apes))
+            await using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Photos.Apes))
             {
                 photoMessage = await BotClient.SendPhotoAsync(
                     chatId: _fixture.SupergroupChat,
@@ -247,10 +278,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             const string caption = "Apes smoking shisha";
             InlineQueryResultBase[] results =
             {
-                new InlineQueryResultCachedPhoto(
-                    id: resultId,
-                    photoFileId: photoMessage.Photo.First().FileId
-                )
+                new InlineQueryResultCachedPhoto(id: resultId, photoFileId: photoMessage.Photo.First().FileId)
                 {
                     Caption = caption
                 }
@@ -272,7 +300,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(caption, messageUpdate.Message.Caption);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithVideo)]
+        [OrderedFact("Should answer inline query with a video")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Video()
         {
@@ -291,8 +319,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                     videoUrl: "https://pixabay.com/en/videos/download/video-10737_medium.mp4",
                     mimeType: "video/mp4",
                     thumbUrl: "https://i.vimeocdn.com/video/646283246_640x360.jpg",
-                    title: "Sunset Landscape"
-                )
+                    title: "Sunset Landscape")
                 {
                     Description = "A beautiful scene"
                 }
@@ -313,7 +340,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithHtmlVideo)]
+        [OrderedFact("Should answer inline query with a YouTube video (HTML page)")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_HTML_Video()
         {
@@ -326,20 +353,18 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
 
             Update iqUpdate = await _fixture.UpdateReceiver.GetInlineQueryUpdateAsync();
 
-            const string resultId = "fireworks_video";
+            const string resultId = "youtube_video";
             InlineQueryResultBase[] results =
             {
                 new InlineQueryResultVideo(
                     id: resultId,
-                    videoUrl: "https://www.youtube.com/watch?v=56MDJ9tD6MY",
+                    videoUrl: "https://www.youtube.com/watch?v=1S0CTtY8Qa0",
                     mimeType: "text/html",
-                    thumbUrl: "https://www.youtube.com/watch?v=56MDJ9tD6MY",
-                    title: "30 Rare Goals We See in Football"
-                )
+                    thumbUrl: "https://www.youtube.com/watch?v=1S0CTtY8Qa0",
+                    title: "Rocket Launch")
                 {
                     InputMessageContent =
-                        new InputTextMessageContent(
-                            "[30 Rare Goals We See in Football](https://www.youtube.com/watch?v=56MDJ9tD6MY)")
+                        new InputTextMessageContent("[Rocket Launch](https://www.youtube.com/watch?v=1S0CTtY8Qa0)")
                         {
                             ParseMode = ParseMode.Markdown
                         }
@@ -361,7 +386,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedVideo)]
+        [OrderedFact("Should send a video and answer inline query with a cached video using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Video()
         {
@@ -381,8 +406,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                 new InlineQueryResultCachedVideo(
                     id: resultId,
                     videoFileId: videoMessage.Video.FileId,
-                    title: "New Year's Eve Fireworks"
-                )
+                    title: "New Year's Eve Fireworks")
                 {
                     Description = "2017 Fireworks in Germany"
                 }
@@ -403,7 +427,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithAudio)]
+        [OrderedFact("Should answer inline query with an audio")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Audio()
         {
@@ -421,8 +445,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                     id: resultId,
                     audioUrl:
                     "https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bb/Test_ogg_mp3_48kbps.wav/Test_ogg_mp3_48kbps.wav.mp3",
-                    title: "Test ogg mp3"
-                )
+                    title: "Test ogg mp3")
                 {
                     Performer = "Shishirdasika",
                     AudioDuration = 25
@@ -444,13 +467,13 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedAudio)]
+        [OrderedFact("Should send an audio and answer inline query with a cached audio using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendAudio)]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Audio()
         {
             Message audioMessage;
-            using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Audio.CantinaRagMp3))
+            await using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Audio.CantinaRagMp3))
             {
                 audioMessage = await BotClient.SendAudioAsync(
                     chatId: _fixture.SupergroupChat,
@@ -469,8 +492,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             {
                 new InlineQueryResultCachedAudio(
                     id: resultId,
-                    audioFileId: audioMessage.Audio.FileId
-                )
+                    audioFileId: audioMessage.Audio.FileId)
                 {
                     Caption = "Jackson F. Smith - Cantina Rag"
                 }
@@ -491,7 +513,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithAudio)]
+        [OrderedFact("Should answer inline query with an audio")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Voice()
         {
@@ -508,8 +530,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                 new InlineQueryResultVoice(
                     id: resultId,
                     voiceUrl: "http://www.vorbis.com/music/Hydrate-Kenny_Beltrey.ogg",
-                    title: "Hydrate - Kenny Beltrey"
-                )
+                    title: "Hydrate - Kenny Beltrey")
                 {
                     Caption = "Hydrate - Kenny Beltrey",
                     VoiceDuration = 265
@@ -531,12 +552,12 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedAudio)]
+        [OrderedFact("Should send an audio and answer inline query with a cached audio using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Voice()
         {
             Message voiceMessage;
-            using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Audio.TestOgg))
+            await using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Audio.TestOgg))
             {
                 voiceMessage = await BotClient.SendVoiceAsync(
                     chatId: _fixture.SupergroupChat,
@@ -574,7 +595,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithDocument)]
+        [OrderedFact("Should answer inline query with a document")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Document()
         {
@@ -590,13 +611,12 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             {
                 new InlineQueryResultDocument(
                     id: resultId,
-                    documentUrl: "http://www.adobe.com/content/dam/acom/en/devnet/acrobat/pdfs/pdf_open_parameters.pdf",
-                    title: "Parameters for Opening PDF Files",
-                    mimeType: "application/pdf"
-                )
+                    documentUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                    title: "Dummy PDF File",
+                    mimeType: "application/pdf")
                 {
-                    Caption = "Parameters for Opening PDF Files",
-                    Description = "Sample PDF file",
+                    Caption = "Dummy PDF File",
+                    Description = "Dummy PDF File for testing",
                 }
             };
 
@@ -615,12 +635,12 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedDocument)]
+        [OrderedFact("Should send a document and answer inline query with a cached document using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Document()
         {
             Message documentMessage;
-            using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Documents.Hamlet))
+            await using (FileStream stream = System.IO.File.OpenRead(Constants.PathToFile.Documents.Hamlet))
             {
                 documentMessage = await BotClient.SendDocumentAsync(
                     chatId: _fixture.SupergroupChat,
@@ -638,8 +658,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                 new InlineQueryResultCachedDocument(
                     id: resultId,
                     documentFileId: documentMessage.Document.FileId,
-                    title: "Test Document"
-                )
+                    title: "Test Document")
                 {
                     Caption = "The Tragedy of Hamlet, Prince of Denmark",
                     Description = "Sample PDF Document",
@@ -661,7 +680,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithGif)]
+        [OrderedFact("Should answer inline query with a gif")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Gif()
         {
@@ -678,14 +697,14 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                 new InlineQueryResultGif(
                     id: resultId,
                     gifUrl: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif",
-                    thumbUrl: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif"
-                )
+                    thumbUrl: "https://upload.wikimedia.org/wikipedia/commons/2/2c/Rotating_earth_%28large%29.gif")
                 {
                     Caption = "Rotating Earth",
                     GifDuration = 4,
                     GifHeight = 400,
                     GifWidth = 400,
                     Title = "Rotating Earth",
+                    ThumbMimeType = "image/gif",
                 }
             };
 
@@ -704,7 +723,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedGif)]
+        [OrderedFact("Should send a gif and answer inline query with a cached gif using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Gif()
         {
@@ -719,10 +738,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             const string resultId = "gif_result";
             InlineQueryResultBase[] results =
             {
-                new InlineQueryResultCachedGif(
-                    id: resultId,
-                    gifFileId: gifMessage.Document.FileId
-                )
+                new InlineQueryResultCachedGif(id: resultId, gifFileId: gifMessage.Document.FileId)
                 {
                     Caption = "Rotating Earth",
                 }
@@ -743,7 +759,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithMpeg4Gif)]
+        [OrderedFact("Should answer inline query with an mpeg4 gif")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Mpeg4Gif()
         {
@@ -760,8 +776,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
                 new InlineQueryResultMpeg4Gif(
                     id: resultId,
                     mpeg4Url: "https://pixabay.com/en/videos/download/video-10737_medium.mp4",
-                    thumbUrl: "https://i.vimeocdn.com/video/646283246_640x360.jpg"
-                )
+                    thumbUrl: "https://i.vimeocdn.com/video/646283246_640x360.jpg")
                 {
                     Caption = "A beautiful scene",
                 },
@@ -782,7 +797,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedMpeg4Gif)]
+        [OrderedFact("Should send an mpeg4 gif and answer inline query with a cached mpeg4 gif using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Mpeg4Gif()
         {
@@ -797,10 +812,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             const string resultId = "mpeg4_gif_result";
             InlineQueryResultBase[] results =
             {
-                new InlineQueryResultCachedMpeg4Gif(
-                    id: resultId,
-                    mpeg4FileId: gifMessage.Document.FileId
-                )
+                new InlineQueryResultCachedMpeg4Gif(id: resultId, mpeg4FileId: gifMessage.Document.FileId)
                 {
                     Caption = "Rotating Earth",
                 }
@@ -821,7 +833,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithCachedSticker)]
+        [OrderedFact("Should answer inline query with a cached sticker using its file_id")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.GetStickerSet)]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Cached_Sticker()
@@ -838,10 +850,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             const string resultId = "sticker_result";
             InlineQueryResultBase[] results =
             {
-                new InlineQueryResultCachedSticker(
-                    id: resultId,
-                    stickerFileId: stickerSet.Stickers[0].FileId
-                )
+                new InlineQueryResultCachedSticker(id: resultId, stickerFileId: stickerSet.Stickers[0].FileId)
             };
 
             await BotClient.AnswerInlineQueryAsync(
@@ -859,7 +868,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             Assert.Equal(iqUpdate.InlineQuery.Query, resultUpdate.ChosenInlineResult.Query);
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldAnswerInlineQueryWithPhotoWithMarkdownEncodedCaption)]
+        [OrderedFact("Should answer inline query with a photo with markdown encoded caption")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
         public async Task Should_Answer_Inline_Query_With_Photo_With_Markdown_Encoded_Caption()
         {
@@ -875,11 +884,7 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             const string photoCaption = "Rainbow Girl";
             InlineQueryResultBase[] results =
             {
-                new InlineQueryResultPhoto(
-                    id: resultId,
-                    photoUrl: url,
-                    thumbUrl: url
-                )
+                new InlineQueryResultPhoto(id: resultId, photoUrl: url, thumbUrl: url)
                 {
                     Caption = $"*{photoCaption}*",
                     ParseMode = ParseMode.Markdown
@@ -918,9 +923,9 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
             InlineQueryResultBase[] results =
             {
                 new InlineQueryResultArticle(
-                    /* id: */ "article:bot-api",
-                    /* title: */ "Telegram Bot API",
-                    /* inputMessageContent: */ new InputTextMessageContent("https://core.telegram.org/bots/api"))
+                    id: "article:bot-api",
+                    title: "Telegram Bot API",
+                    inputMessageContent: new InputTextMessageContent("https://core.telegram.org/bots/api"))
                 {
                     Description = "The Bot API is an HTTP-based interface created for developers",
                 },
@@ -930,62 +935,14 @@ namespace Telegram.Bot.Tests.Integ.Inline_Mode
 
             ApiRequestException e = await Assert.ThrowsAnyAsync<ApiRequestException>(() =>
                 BotClient.AnswerInlineQueryAsync(
-                    /* inlineQueryId: */ queryUpdate.InlineQuery.Id,
-                    /* results: */ results,
-                    /* cacheTime: */ 0
+                    inlineQueryId: queryUpdate.InlineQuery.Id,
+                    results: results,
+                    cacheTime: 0
                 )
             );
 
             Assert.Equal("query is too old and response timeout expired or query ID is invalid", e.Message);
             Assert.Equal(400, e.ErrorCode);
-        }
-
-        private static class FactTitles
-        {
-            public const string ShouldAnswerInlineQueryWithContact = "Should answer inline query with a contact";
-
-            public const string ShouldAnswerInlineQueryWithLocation = "Should answer inline query with a location";
-
-            public const string ShouldAnswerInlineQueryWithVenue = "Should answer inline query with a venue";
-
-            public const string ShouldAnswerInlineQueryWithPhoto = "Should answer inline query with a photo";
-
-            public const string ShouldAnswerInlineQueryWithCachedPhoto =
-                "Should send a photo and answer inline query with a cached photo using its file_id";
-
-            public const string ShouldAnswerInlineQueryWithVideo = "Should answer inline query with a video";
-
-            public const string ShouldAnswerInlineQueryWithHtmlVideo =
-                "Should answer inline query with a YouTube video (HTML page)";
-
-            public const string ShouldAnswerInlineQueryWithCachedVideo =
-                "Should send a video and answer inline query with a cached video using its file_id";
-
-            public const string ShouldAnswerInlineQueryWithAudio = "Should answer inline query with an audio";
-
-            public const string ShouldAnswerInlineQueryWithCachedAudio =
-                "Should send an audio and answer inline query with a cached audio using its file_id";
-
-            public const string ShouldAnswerInlineQueryWithDocument = "Should answer inline query with a document";
-
-            public const string ShouldAnswerInlineQueryWithCachedDocument =
-                "Should send a document and answer inline query with a cached document using its file_id";
-
-            public const string ShouldAnswerInlineQueryWithGif = "Should answer inline query with a gif";
-
-            public const string ShouldAnswerInlineQueryWithCachedGif =
-                "Should send a gif and answer inline query with a cached gif using its file_id";
-
-            public const string ShouldAnswerInlineQueryWithMpeg4Gif = "Should answer inline query with an mpeg4 gif";
-
-            public const string ShouldAnswerInlineQueryWithCachedMpeg4Gif =
-                "Should send an mpeg4 gif and answer inline query with a cached mpeg4 gif using its file_id";
-
-            public const string ShouldAnswerInlineQueryWithCachedSticker =
-                "Should answer inline query with a cached sticker using its file_id";
-
-            public const string ShouldAnswerInlineQueryWithPhotoWithMarkdownEncodedCaption =
-                "Should answer inline query with a photo with markdown encoded caption";
         }
     }
 }

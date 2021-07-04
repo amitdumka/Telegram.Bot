@@ -1,7 +1,6 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
 using Telegram.Bot.Tests.Integ.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
@@ -136,7 +135,6 @@ namespace Telegram.Bot.Tests.Integ.Other
 
             // Following fields of a chat do not apply to a private chat:
             Assert.Null(chat.Title);
-            Assert.False(chat.AllMembersAreAdministrators);
             Assert.Null(chat.Description);
             Assert.Null(chat.InviteLink);
             Assert.Null(chat.PinnedMessage);
@@ -159,13 +157,13 @@ namespace Telegram.Bot.Tests.Integ.Other
         /// The status is set for 5 seconds or less (when a message arrives from your bot, Telegram clients clear
         /// its typing status)
         /// </remarks>
-        [OrderedFact("Should send action to chat: recording audio")]
+        [OrderedFact("Should send action to chat: recording voice")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendChatAction)]
         public async Task Should_Send_Chat_Action()
         {
             await BotClient.SendChatActionAsync(
                 chatId: _fixture.SupergroupChat.Id,
-                chatAction: ChatAction.RecordAudio
+                chatAction: ChatAction.RecordVoice
             );
 
             await Task.Delay(5_000);

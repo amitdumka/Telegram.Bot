@@ -50,8 +50,18 @@ namespace Telegram.Bot.Types.InlineQueryResults
         public ParseMode ParseMode { get; set; }
 
         /// <inheritdoc />
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public MessageEntity[] CaptionEntities { get; set; }
+
+        /// <inheritdoc />
         [JsonProperty(Required = Required.Always)]
         public string ThumbUrl { get; set; }
+
+        /// <summary>
+        /// Optional. MIME type of the thumbnail, must be one of “image/jpeg”, “image/gif”, or “video/mp4”. Defaults to “image/jpeg”
+        /// </summary>
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
+        public string ThumbMimeType { get; set; }
 
         /// <inheritdoc />
         [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]

@@ -26,12 +26,12 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
         public async Task Should_Send_Pdf_Document()
         {
             Message message;
-            using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Documents.Hamlet))
+            await using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Documents.Hamlet))
             {
                 message = await BotClient.SendDocumentAsync(
-                    /* chatId: */ _fixture.SupergroupChat.Id,
-                    /* document: */ new InputOnlineFile( /* content: */ stream, /* fileName: */ "HAMLET.pdf"),
-                    /* caption: */ "The Tragedy of Hamlet,\nPrince of Denmark"
+                    chatId: _fixture.SupergroupChat.Id,
+                    document: new InputOnlineFile(content: stream, fileName: "HAMLET.pdf"),
+                    caption: "The Tragedy of Hamlet,\nPrince of Denmark"
                 );
             }
 
@@ -50,12 +50,12 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
         public async Task Should_Send_Document_With_Farsi_Name()
         {
             Message message;
-            using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Documents.Hamlet))
+            await using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Documents.Hamlet))
             {
                 message = await BotClient.SendDocumentAsync(
-                    /* chatId: */ _fixture.SupergroupChat.Id,
-                    /* document: */ new InputOnlineFile( /* content: */ stream, /* fileName: */ "هملت.pdf"),
-                    /* caption: */ "تراژدی هملت\nشاهزاده دانمارک"
+                    chatId: _fixture.SupergroupChat.Id,
+                    document: new InputOnlineFile( content: stream, fileName: "هملت.pdf"),
+                    caption: "تراژدی هملت\nشاهزاده دانمارک"
                 );
             }
 
@@ -73,15 +73,15 @@ namespace Telegram.Bot.Tests.Integ.Sending_Messages
         public async Task Should_Send_Document_With_Thumb()
         {
             Message message;
-            using (Stream
+            await using (Stream
                 stream1 = System.IO.File.OpenRead(Constants.PathToFile.Documents.Hamlet),
                 stream2 = System.IO.File.OpenRead(Constants.PathToFile.Thumbnail.TheAbilityToBreak)
             )
             {
                 message = await BotClient.SendDocumentAsync(
-                    /* chatId: */ _fixture.SupergroupChat,
-                    /* document: */ new InputMedia( /* content: */ stream1, /* fileName: */ "Hamlet.pdf"),
-                    thumb: new InputMedia( /* content: */ stream2, /* fileName: */ "thumb.jpg")
+                    chatId: _fixture.SupergroupChat,
+                    document: new InputMedia(content: stream1, fileName: "Hamlet.pdf"),
+                    thumb: new InputMedia(content: stream2, fileName: "thumb.jpg")
                 );
             }
 

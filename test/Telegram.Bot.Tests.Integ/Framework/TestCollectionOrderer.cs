@@ -28,6 +28,8 @@ namespace Telegram.Bot.Tests.Integ.Framework
 
             // Tests without the need for user interaction:
             Constants.TestCollections.GettingUpdates,
+            Constants.TestCollections.BotCommands,
+            Constants.TestCollections.Dice,
             Constants.TestCollections.Webhook,
             Constants.TestCollections.SendTextMessage,
             Constants.TestCollections.SendAudioMessage,
@@ -53,6 +55,7 @@ namespace Telegram.Bot.Tests.Integ.Framework
             Constants.TestCollections.SupergroupAdminBots,
             Constants.TestCollections.ChannelAdminBots,
             Constants.TestCollections.Exceptions2,
+            Constants.TestCollections.SendCopyMessage
         };
 
         public IEnumerable<ITestCollection> OrderTestCollections(IEnumerable<ITestCollection> testCollections)
@@ -80,7 +83,9 @@ namespace Telegram.Bot.Tests.Integ.Framework
             if (order is null)
             {
                 throw new ArgumentException(
-                    $"Collection \"{collection.DisplayName}\" not found in execution list.", nameof(collection));
+                    $"Collection \"{collection.DisplayName}\" not found in execution list.",
+                    nameof(collection)
+                );
             }
 
             return (int) order;

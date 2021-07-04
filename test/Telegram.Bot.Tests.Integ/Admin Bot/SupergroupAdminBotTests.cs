@@ -1,6 +1,7 @@
 using Newtonsoft.Json.Linq;
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Exceptions;
 using Telegram.Bot.Tests.Integ.Framework;
@@ -94,22 +95,45 @@ namespace Telegram.Bot.Tests.Integ.Admin_Bot
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.PinChatMessage)]
         public async Task Should_Pin_Message()
         {
-            Message msg = await _classFixture.TestsFixture.SendTestInstructionsAsync("🧷 This message will be pinned shortly!");
+            Message msg1 = await _classFixture.TestsFixture.SendTestInstructionsAsync("🧷 This message will be deleted second");
+            Message msg2 = await _classFixture.TestsFixture.SendTestInstructionsAsync("🧷 This will be deleted as group");
+            Message msg3 = await _classFixture.TestsFixture.SendTestInstructionsAsync("🧷 This will be deleted with previous one");
+            Message msg4 = await _classFixture.TestsFixture.SendTestInstructionsAsync("🧷 This message will be deleted first");
 
             await BotClient.PinChatMessageAsync(
                 chatId: _classFixture.Chat.Id,
-                messageId: msg.MessageId,
+                messageId: msg1.MessageId,
                 disableNotification: true
             );
 
-            _classFixture.PinnedMessage = msg;
+            await BotClient.PinChatMessageAsync(
+                chatId: _classFixture.Chat.Id,
+                messageId: msg2.MessageId,
+                disableNotification: true
+            );
+
+            await BotClient.PinChatMessageAsync(
+                chatId: _classFixture.Chat.Id,
+                messageId: msg3.MessageId,
+                disableNotification: true
+            );
+
+            await BotClient.PinChatMessageAsync(
+                chatId: _classFixture.Chat.Id,
+                messageId: msg4.MessageId,
+                disableNotification: true
+            );
+            _classFixture.PinnedMessages.Add(msg1);
+            _classFixture.PinnedMessages.Add(msg2);
+            _classFixture.PinnedMessages.Add(msg3);
+            _classFixture.PinnedMessages.Add(msg4);
         }
 
         [OrderedFact("Should get chat's pinned message")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.GetChat)]
-        public async Task Should_Get_Chat_Pinned_Message()
+        public async Task Should_Get_Last_Chat_Pinned_Message()
         {
-            Message pinnedMsg = _classFixture.PinnedMessage;
+            Message pinnedMsg = _classFixture.PinnedMessages.Last();
 
             Chat chat = await BotClient.GetChatAsync(_classFixture.Chat.Id);
 
@@ -118,11 +142,40 @@ namespace Telegram.Bot.Tests.Integ.Admin_Bot
             ));
         }
 
-        [OrderedFact("Should unpin chat message")]
+        [OrderedFact("Should unpin last chat message")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.UnpinChatMessage)]
-        public async Task Should_Unpin_Message()
+        public async Task Should_Unpin_Last_Message()
         {
             await BotClient.UnpinChatMessageAsync(_classFixture.Chat.Id);
+
+            // Wait for chat object to update on Telegram servers
+            await Task.Delay(TimeSpan.FromSeconds(5));
+
+            Chat chat = await BotClient.GetChatAsync(_classFixture.Chat.Id);
+
+            Message secondsFromEndPinnedMessage = _classFixture.PinnedMessages[^2];
+
+            Assert.True(JToken.DeepEquals(
+                JToken.FromObject(secondsFromEndPinnedMessage),
+                JToken.FromObject(chat.PinnedMessage)
+            ));
+        }
+
+        [OrderedFact("Should unpin first chat message")]
+        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.UnpinChatMessage)]
+        public async Task Should_Unpin_First_Message()
+        {
+            await BotClient.UnpinChatMessageAsync(
+                chatId: _classFixture.Chat.Id,
+                messageId: _classFixture.PinnedMessages.First().MessageId
+            );
+        }
+
+        [OrderedFact("Should Unpin all Messages")]
+        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.UnpinAllChatMessages)]
+        public async Task Should_Unpin_All_Messages()
+        {
+            await BotClient.UnpinAllChatMessages(_classFixture.Chat);
         }
 
         [OrderedFact("Should get the chat info without a pinned message")]
@@ -142,13 +195,11 @@ namespace Telegram.Bot.Tests.Integ.Admin_Bot
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SetChatPhoto)]
         public async Task Should_Set_Chat_Photo()
         {
-            using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Photos.Logo))
-            {
-                await BotClient.SetChatPhotoAsync(
-                    chatId: _classFixture.Chat.Id,
-                    photo: stream
-                );
-            }
+            await using Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Photos.Logo);
+            await BotClient.SetChatPhotoAsync(
+                chatId: _classFixture.Chat.Id,
+                photo: stream
+            );
         }
 
         [OrderedFact("Should delete chat photo")]
@@ -162,10 +213,10 @@ namespace Telegram.Bot.Tests.Integ.Admin_Bot
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.DeleteChatPhoto)]
         public async Task Should_Throw_On_Deleting_Chat_Deleted_Photo()
         {
-            Exception e = await Assert.ThrowsAnyAsync<Exception>(() =>
-                BotClient.DeleteChatPhotoAsync(_classFixture.Chat.Id));
+            Exception e = await Assert.ThrowsAnyAsync<Exception>(
+                () => BotClient.DeleteChatPhotoAsync(_classFixture.Chat.Id)
+            );
 
-            // ToDo: Create exception type
             Assert.IsType<ApiRequestException>(e);
             Assert.Equal("Bad Request: CHAT_NOT_MODIFIED", e.Message);
         }
@@ -184,7 +235,6 @@ namespace Telegram.Bot.Tests.Integ.Admin_Bot
                 BotClient.SetChatStickerSetAsync(_classFixture.Chat.Id, setName)
             );
 
-            // ToDo: Create exception type
             Assert.Equal(400, exception.ErrorCode);
             Assert.Equal("Bad Request: can't set supergroup sticker set", exception.Message);
         }

@@ -31,7 +31,7 @@ namespace Telegram.Bot.Tests.Integ.Locations
             _classFixture = classFixture;
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldSendLiveLocation)]
+        [OrderedFact("Should send a location with live period to update")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendLocation)]
         public async Task Should_Send_Live_Location()
         {
@@ -52,7 +52,7 @@ namespace Telegram.Bot.Tests.Integ.Locations
             LocationMessage = message;
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldUpdateLocation)]
+        [OrderedFact("Should update live location 3 times")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.EditMessageLiveLocation)]
         public async Task Should_Update_Live_Location()
         {
@@ -83,7 +83,7 @@ namespace Telegram.Bot.Tests.Integ.Locations
             LocationMessage = editedMessage;
         }
 
-        [OrderedFact(DisplayName = FactTitles.ShouldStopMessageLiveLocation)]
+        [OrderedFact("Should stop live locations")]
         [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.StopMessageLiveLocation)]
         public async Task Should_Stop_Live_Location()
         {
@@ -92,20 +92,12 @@ namespace Telegram.Bot.Tests.Integ.Locations
                 messageId: LocationMessage.MessageId
             );
 
-            LocationMessage.Date = message.Date;
-            LocationMessage.EditDate = message.EditDate;
-            Assert.True(JToken.DeepEquals(
-                JToken.FromObject(LocationMessage), JToken.FromObject(message)
-            ));
-        }
-
-        private static class FactTitles
-        {
-            public const string ShouldSendLiveLocation = "Should send a location with live period to update";
-
-            public const string ShouldUpdateLocation = "Should update live location 3 times";
-
-            public const string ShouldStopMessageLiveLocation = "Should stop live locations";
+            Assert.Equal(LocationMessage.MessageId, message.MessageId);
+            Assert.Equal(LocationMessage.Chat.Id, message.Chat.Id);
+            Assert.Equal(LocationMessage.From.Id, message.From.Id);
+            Assert.Equal(LocationMessage.Location.Longitude, message.Location.Longitude);
+            Assert.Equal(LocationMessage.Location.Latitude, message.Location.Latitude);
+            Assert.Equal(LocationMessage.Location.Longitude, message.Location.Longitude);
         }
     }
 }
