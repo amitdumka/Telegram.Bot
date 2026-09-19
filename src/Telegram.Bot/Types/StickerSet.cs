@@ -1,43 +1,26 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types;
 
-namespace Telegram.Bot.Types
+/// <summary>This object represents a sticker set.</summary>
+public partial class StickerSet
 {
-    /// <summary>
-    /// This object represents a sticker set.
-    /// <see href="https://core.telegram.org/bots/api#stickerset"/>
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class StickerSet
-    {
-        /// <summary>
-        /// Sticker set name
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Name { get; set; }
+    /// <summary>Sticker set name</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string Name { get; set; } = default!;
 
-        /// <summary>
-        /// Sticker set title
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Title { get; set; }
+    /// <summary>Sticker set title</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string Title { get; set; } = default!;
 
-        /// <summary>
-        /// True, if the sticker set contains animated stickers
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public bool IsAnimated { get; set; }
+    /// <summary>Type of stickers in the set, currently one of <see cref="StickerType.Regular">Regular</see>, <see cref="StickerType.Mask">Mask</see>, <see cref="StickerType.CustomEmoji">CustomEmoji</see></summary>
+    [JsonPropertyName("sticker_type")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public StickerType StickerType { get; set; }
 
-        /// <summary>
-        /// True, if the sticker set contains masks
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public bool ContainsMasks { get; set; }
+    /// <summary>List of all set stickers</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public Sticker[] Stickers { get; set; } = default!;
 
-        /// <summary>
-        /// List of all set stickers
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public Sticker[] Stickers { get; set; }
-    }
+    /// <summary><em>Optional</em>. Sticker set thumbnail in the .WEBP, .TGS, or .WEBM format</summary>
+    public PhotoSize? Thumbnail { get; set; }
 }

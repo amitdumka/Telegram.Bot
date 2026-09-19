@@ -1,30 +1,18 @@
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types;
 
-namespace Telegram.Bot.Types
+/// <summary>This object represents one row of the high scores table for a game.</summary>
+public partial class GameHighScore
 {
-    /// <summary>
-    /// This object represents one row of the high scores table for a game.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class GameHighScore
-    {
-        /// <summary>
-        /// Position in high score table for the game.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int Position { get; set; }
+    /// <summary>Position in high score table for the game</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Position { get; set; }
 
-        /// <summary>
-        /// User
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public User User { get; set; }
+    /// <summary>User</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public User User { get; set; } = default!;
 
-        /// <summary>
-        /// Score
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int Score { get; set; }
-    }
+    /// <summary>Score</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Score { get; set; }
 }

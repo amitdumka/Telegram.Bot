@@ -1,55 +1,49 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using Telegram.Bot.Requests.Abstractions;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.ReplyMarkups;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Requests;
 
-// ReSharper disable once CheckNamespace
-namespace Telegram.Bot.Requests
+/// <summary>Use this method to send a game.<para>Returns: The sent <see cref="Message"/> is returned.</para></summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public partial class SendGameRequest() : RequestBase<Message>("sendGame"), IChatTargetable, IBusinessConnectable
 {
-    /// <summary>
-    /// Send a game. On success, the sent <see cref="Message"/> is returned.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class SendGameRequest : RequestBase<Message>,
-                                   INotifiableMessage,
-                                   IReplyMessage,
-                                   IInlineReplyMarkupMessage
-    {
-        /// <summary>
-        /// Unique identifier for the target chat
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public long ChatId { get; }
+    /// <summary>Unique identifier for the target chat or username of the target bot in the format <c>@username</c>. Games can't be sent to channel direct messages chats and channel chats.</summary>
+    [JsonPropertyName("chat_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required ChatId ChatId { get; set; }
 
-        /// <summary>
-        /// Short name of the game, serves as the unique identifier for the game
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string GameShortName { get; }
+    /// <summary>Short name of the game, serves as the unique identifier for the game. Set up your games via <a href="https://t.me/botfather">@BotFather</a>.</summary>
+    [JsonPropertyName("game_short_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required string GameShortName { get; set; }
 
-        /// <inheritdoc />
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool DisableNotification { get; set; }
+    /// <summary>Unique identifier of the business connection on behalf of which the message will be sent</summary>
+    [JsonPropertyName("business_connection_id")]
+    public string? BusinessConnectionId { get; set; }
 
-        /// <inheritdoc />
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int ReplyToMessageId { get; set; }
+    /// <summary>Unique identifier for the target message thread (topic) of a forum; for forum supergroups and private chats of bots with forum topic mode enabled only</summary>
+    [JsonPropertyName("message_thread_id")]
+    public int? MessageThreadId { get; set; }
 
-        /// <inheritdoc cref="IInlineReplyMarkupMessage.ReplyMarkup" />
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public InlineKeyboardMarkup ReplyMarkup { get; set; }
+    /// <summary>Sends the message <a href="https://telegram.org/blog/channels-2-0#silent-messages">silently</a>. Users will receive a notification with no sound.</summary>
+    [JsonPropertyName("disable_notification")]
+    public bool DisableNotification { get; set; }
 
-        /// <summary>
-        /// Initializes a new request with chatId and gameShortName
-        /// </summary>
-        /// <param name="chatId">Unique identifier for the target chat</param>
-        /// <param name="gameShortName">Short name of the game, serves as the unique identifier for the game</param>
-        public SendGameRequest(long chatId, string gameShortName)
-            : base("sendGame")
-        {
-            ChatId = chatId;
-            GameShortName = gameShortName;
-        }
-    }
+    /// <summary>Protects the contents of the sent message from forwarding and saving</summary>
+    [JsonPropertyName("protect_content")]
+    public bool ProtectContent { get; set; }
+
+    /// <summary>Pass <see langword="true"/> to allow up to 1000 messages per second, ignoring <a href="https://core.telegram.org/bots/faq#how-can-i-message-all-of-my-bot-39s-subscribers-at-once">broadcasting limits</a> for a fee of 0.1 Telegram Stars per message. The relevant Stars will be withdrawn from the bot's balance.</summary>
+    [JsonPropertyName("allow_paid_broadcast")]
+    public bool AllowPaidBroadcast { get; set; }
+
+    /// <summary>Unique identifier of the message effect to be added to the message; for private chats only</summary>
+    [JsonPropertyName("message_effect_id")]
+    public string? MessageEffectId { get; set; }
+
+    /// <summary>Description of the message to reply to</summary>
+    [JsonPropertyName("reply_parameters")]
+    public ReplyParameters? ReplyParameters { get; set; }
+
+    /// <summary>An object for an <a href="https://core.telegram.org/bots/features#inline-keyboards">inline keyboard</a>. If empty, one 'Play GameTitle' button will be shown. If not empty, the first button must launch the game.</summary>
+    [JsonPropertyName("reply_markup")]
+    public InlineKeyboardMarkup? ReplyMarkup { get; set; }
 }

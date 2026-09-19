@@ -1,57 +1,29 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using Telegram.Bot.Requests.Abstractions;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Requests;
 
-// ReSharper disable once CheckNamespace
-namespace Telegram.Bot.Requests
+/// <summary>Use this method to set the score of the specified user in a game message.</summary>
+/// <remarks>Returns an error, if the new score is not greater than the user's current score in the chat and <see cref="Force">Force</see> is <em>False</em>.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public partial class SetInlineGameScoreRequest() : RequestBase<bool>("setGameScore"), IUserTargetable
 {
-    /// <summary>
-    /// Set the score of the specified user in a game. On success returns True. Returns an error, if the new score is not greater than the user's current score in the chat and force is False.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class SetInlineGameScoreRequest : RequestBase<bool>,
-                                             IInlineMessage
-    {
-        /// <summary>
-        /// User identifier
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int UserId { get; }
+    /// <summary>User identifier</summary>
+    [JsonPropertyName("user_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required long UserId { get; set; }
 
-        /// <summary>
-        /// New score, must be non-negative
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int Score { get; }
+    /// <summary>New score, must be non-negative</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required int Score { get; set; }
 
-        /// <inheritdoc />
-        [JsonProperty(Required = Required.Always)]
-        public string InlineMessageId { get; }
+    /// <summary>Pass <see langword="true"/> if the high score is allowed to decrease. This can be useful when fixing mistakes or banning cheaters.</summary>
+    public bool Force { get; set; }
 
-        /// <summary>
-        /// Pass True, if the high score is allowed to decrease. This can be useful when fixing mistakes or banning cheaters.
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool Force { get; set; }
+    /// <summary>Pass <see langword="true"/> if the game message should not be automatically edited to include the current scoreboard</summary>
+    [JsonPropertyName("disable_edit_message")]
+    public bool DisableEditMessage { get; set; }
 
-        /// <summary>
-        /// Pass True, if the game message should not be automatically edited to include the current scoreboard
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool DisableEditMessage { get; set; }
-
-        /// <summary>
-        /// Initializes a new request with userId, inlineMessageId and new score
-        /// </summary>
-        /// <param name="userId">User identifier</param>
-        /// <param name="inlineMessageId">Identifier of the inline message</param>
-        /// <param name="score">New score, must be non-negative</param>
-        public SetInlineGameScoreRequest(int userId, int score, string inlineMessageId)
-            : base("setGameScore")
-        {
-            UserId = userId;
-            Score = score;
-            InlineMessageId = inlineMessageId;
-        }
-    }
+    /// <summary>Identifier of the inline message.</summary>
+    [JsonPropertyName("inline_message_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required string InlineMessageId { get; set; }
 }

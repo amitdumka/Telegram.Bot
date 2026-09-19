@@ -4,136 +4,119 @@ using Telegram.Bot.Tests.Integ.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.InlineQueryResults;
-using Telegram.Bot.Types.InputFiles;
 using Telegram.Bot.Types.ReplyMarkups;
 using Xunit;
 
-namespace Telegram.Bot.Tests.Integ.Update_Messages
+namespace Telegram.Bot.Tests.Integ.Update_Messages;
+
+[Collection(Constants.TestCollections.EditMessageMedia)]
+[Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
+[TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
+public class EditMessageMediaTests(TestsFixture fixture) : TestClass(fixture)
 {
-    [Collection(Constants.TestCollections.EditMessageMedia)]
-    [Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
-    [TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
-    public class EditMessageMediaTests
+    [OrderedFact("Should change an inline message's photo to an audio using URL")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.EditMessageMedia)]
+    public async Task Should_Edit_Inline_Message_Photo()
     {
-        private ITelegramBotClient BotClient => _fixture.BotClient;
+        await Fixture.SendTestInstructionsAsync(
+            "Starting the inline query with this message...",
+            startInlineQuery: true
+        );
 
-        private readonly TestsFixture _fixture;
+        #region Answer Inline Query with a media message
 
-        public EditMessageMediaTests(TestsFixture fixture)
-        {
-            _fixture = fixture;
-        }
+        Update iqUpdate = await Fixture.UpdateReceiver.GetInlineQueryUpdateAsync();
+        Assert.NotNull(iqUpdate.InlineQuery);
 
-        [OrderedFact(DisplayName = FactTitles.ShouldEditInlineMessagePhotoWithUrl)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.EditMessageMedia)]
-        public async Task Should_Edit_Inline_Message_Photo()
-        {
-            await _fixture.SendTestInstructionsAsync(
-                "Starting the inline query with this message...",
-                startInlineQuery: true
-            );
-
-            #region Answer Inline Query with a media message
-
-            Update iqUpdate = await _fixture.UpdateReceiver.GetInlineQueryUpdateAsync();
-
-            InlineQueryResultBase[] inlineQueryResults =
+        InlineQueryResult[] inlineQueryResults =
+        [
+            new InlineQueryResultPhoto
             {
-                new InlineQueryResultPhoto(
-                    id: "photo:rainbow-girl",
-                    photoUrl: "https://cdn.pixabay.com/photo/2017/08/30/12/45/girl-2696947_640.jpg",
-                    thumbUrl: "https://cdn.pixabay.com/photo/2017/08/30/12/45/girl-2696947_640.jpg"
-                )
-                {
-                    Caption = "Rainbow Girl",
-                    ReplyMarkup = InlineKeyboardButton.WithCallbackData("Click here to edit"),
-                }
-            };
-
-            await BotClient.AnswerInlineQueryAsync(iqUpdate.InlineQuery.Id, inlineQueryResults, 0);
-
-            #endregion
-
-            // Bot waits for user to click on inline button under the media
-            Update cqUpdate = await _fixture.UpdateReceiver.GetCallbackQueryUpdateAsync(data: "Click here to edit");
-
-            // Change the photo for an audio. Note that, in the case of an inline message, the new media should be
-            // either an URL or the file_id of a previously uploaded media.
-            await BotClient.EditMessageMediaAsync(
-                inlineMessageId: cqUpdate.CallbackQuery.InlineMessageId,
-                media: new InputMediaAudio(
-                    "https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bb/" +
-                    "Test_ogg_mp3_48kbps.wav/Test_ogg_mp3_48kbps.wav.mp3"
-                )
-                {
-                    Caption = "**Audio** in `.mp3` format",
-                    ParseMode = ParseMode.Markdown,
-                }
-            );
-        }
-
-        [OrderedFact(DisplayName = FactTitles.ShouldEditInlineMessageDocumentWithFileId)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendDocument)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.EditMessageMedia)]
-        public async Task ShouldEditInlineMessageDocumentWithFileId()
-        {
-            // Upload a GIF file to Telegram servers and obtain its file_id. This file_id will be used later in test.
-            string animationFileId;
-            using (Stream stream = System.IO.File.OpenRead(Constants.PathToFile.Animation.Earth))
-            {
-                Message gifMessage = await BotClient.SendDocumentAsync(
-                    chatId: _fixture.SupergroupChat,
-                    document: new InputOnlineFile(stream, "Earth.gif"),
-                    caption: "`file_id` of this GIF will be used",
-                    parseMode: ParseMode.Markdown,
-                    replyMarkup: (InlineKeyboardMarkup) InlineKeyboardButton
-                        .WithSwitchInlineQueryCurrentChat("Start Inline Query")
-                );
-                animationFileId = gifMessage.Document.FileId;
+                Id = "photo:rainbow-girl",
+                PhotoUrl = "https://cdn.pixabay.com/photo/2017/08/30/12/45/girl-2696947_640.jpg",
+                ThumbnailUrl = "https://cdn.pixabay.com/photo/2017/08/30/12/45/girl-2696947_640.jpg",
+                Caption = "Rainbow Girl",
+                ReplyMarkup = InlineKeyboardButton.WithCallbackData("Click here to edit"),
             }
+        ];
 
-            #region Answer Inline Query with a media message
+        await BotClient.AnswerInlineQuery(iqUpdate.InlineQuery.Id, inlineQueryResults, 0);
 
-            Update iqUpdate = await _fixture.UpdateReceiver.GetInlineQueryUpdateAsync();
+        #endregion
 
-            InlineQueryResultBase[] inlineQueryResults =
+        // Bot waits for user to click on inline button under the media
+        Update cqUpdate = await Fixture.UpdateReceiver.GetCallbackQueryUpdateAsync(data: "Click here to edit");
+
+        Assert.NotNull(cqUpdate.CallbackQuery);
+        Assert.NotNull(cqUpdate.CallbackQuery.InlineMessageId);
+
+        // Change the photo for an audio. Note that, in the case of an inline message, the new media should be
+        // either an URL or the file_id of a previously uploaded media.
+        InputFileUrl inputFileUrl = InputFile.FromUri("https://upload.wikimedia.org/wikipedia/commons/transcoded/b/bb/Test_ogg_mp3_48kbps.wav/Test_ogg_mp3_48kbps.wav.mp3");
+        await BotClient.EditMessageMedia(
+            inlineMessageId: cqUpdate.CallbackQuery.InlineMessageId,
+            media: new InputMediaAudio
             {
-                new InlineQueryResultDocument(
-                    id: "document:acrobat",
-                    documentUrl: "http://www.adobe.com/content/dam/acom/en/devnet/acrobat/pdfs/pdf_open_parameters.pdf",
-                    title: "Parameters for Opening PDF Files",
-                    mimeType: "application/pdf"
-                )
-                {
-                    ReplyMarkup = InlineKeyboardButton.WithCallbackData("Click here to edit"),
-                }
-            };
+                Media = inputFileUrl,
+                Caption = "**Audio** in `.mp3` format",
+                ParseMode = ParseMode.Markdown,
+            }
+        );
+    }
 
-            await BotClient.AnswerInlineQueryAsync(iqUpdate.InlineQuery.Id, inlineQueryResults, 0);
+    [OrderedFact("Should change an inline message's document to an animation using file_id")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerInlineQuery)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendDocument)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.EditMessageMedia)]
+    public async Task Should_Edit_Inline_Message_Document_With_FileId()
+    {
+        // Upload a GIF file to Telegram servers and obtain its file_id. This file_id will be used later in test.
+        await using Stream stream = File.OpenRead(Constants.PathToFile.Animation.Earth);
+        Message gifMessage = await BotClient.WithStreams(stream).SendDocument(
+            chatId: Fixture.SupergroupChat,
+            document: InputFile.FromStream(stream, "Earth.gif"),
+            caption: "`file_id` of this GIF will be used",
+            parseMode: ParseMode.Markdown,
+            replyMarkup: (InlineKeyboardMarkup)InlineKeyboardButton
+                .WithSwitchInlineQueryCurrentChat("Start Inline Query")
+        );
 
-            #endregion
+        Assert.NotNull(gifMessage.Document);
+        string animationFileId = gifMessage.Document.FileId;
 
-            // Bot waits for user to click on inline button under the media
-            Update cqUpdate = await _fixture.UpdateReceiver.GetCallbackQueryUpdateAsync(data: "Click here to edit");
+        #region Answer Inline Query with a media message
 
-            // Change the YouTube video for an animation. Note that, in the case of an inline message, the new media
-            // should be either an URL or the file_id of a previously uploaded media.
-            // Also, animation thumbnail cannot be uploaded for an inline message.
-            await BotClient.EditMessageMediaAsync(
-                inlineMessageId: cqUpdate.CallbackQuery.InlineMessageId,
-                media: new InputMediaAnimation(animationFileId)
-            );
-        }
+        Update iqUpdate = await Fixture.UpdateReceiver.GetInlineQueryUpdateAsync();
+        Assert.NotNull(iqUpdate.InlineQuery);
 
-        private static class FactTitles
-        {
-            public const string ShouldEditInlineMessagePhotoWithUrl =
-                "Should change an inline message's photo to an audio using URL";
+        InlineQueryResult[] inlineQueryResults =
+        [
+            new InlineQueryResultDocument
+            {
+                Id = "document:acrobat",
+                DocumentUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+                Title = "Dummy PDF File",
+                MimeType = "application/pdf",
+                ReplyMarkup = InlineKeyboardButton.WithCallbackData("Click here to edit"),
+            }
+        ];
 
-            public const string ShouldEditInlineMessageDocumentWithFileId =
-                "Should change an inline message's document to an animation using file_id";
-        }
+        await BotClient.AnswerInlineQuery(iqUpdate.InlineQuery.Id, inlineQueryResults, 0);
+
+        #endregion
+
+        // Bot waits for user to click on inline button under the media
+        Update cqUpdate = await Fixture.UpdateReceiver.GetCallbackQueryUpdateAsync(data: "Click here to edit");
+        Assert.NotNull(cqUpdate.CallbackQuery);
+        Assert.NotNull(cqUpdate.CallbackQuery.InlineMessageId);
+
+        // Change the YouTube video for an animation. Note that, in the case of an inline message, the new media
+        // should be either an URL or the file_id of a previously uploaded media.
+        // Also, animation thumbnail cannot be uploaded for an inline message.
+        await BotClient.EditMessageMedia(
+            inlineMessageId: cqUpdate.CallbackQuery.InlineMessageId,
+            media: new InputMediaAnimation { Media = InputFile.FromFileId(animationFileId) }
+        );
     }
 }

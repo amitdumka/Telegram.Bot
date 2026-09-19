@@ -1,115 +1,114 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Tests.Integ.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Xunit;
 
-namespace Telegram.Bot.Tests.Integ.Polls
+namespace Telegram.Bot.Tests.Integ.Polls;
+
+[Collection(Constants.TestCollections.NativePolls)]
+[Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
+[TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
+public class QuizPollTests(QuizPollTestsFixture classFixture)
+    : TestClass(classFixture.TestsFixture), IClassFixture<QuizPollTestsFixture>
 {
-    [Collection(Constants.TestCollections.NativePolls)]
-    [Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
-    [TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
-    public class QuizPollTests : IClassFixture<QuizPollTestsFixture>
+    [OrderedFact(
+        "Should send public quiz poll")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendPoll)]
+    public async Task Should_Send_Public_Quiz_Poll()
     {
-        private readonly TestsFixture _fixture;
-        private readonly QuizPollTestsFixture _classFixture;
+        Message message = await Fixture.BotClient.SendPoll(
+            chatId: Fixture.SupergroupChat,
+            question: "How many silmarils were made in J. R. R. Tolkiens's Silmarillion?",
+            options: ["One", "Ten", "Three"],
+            isAnonymous: false,
+            type: PollType.Quiz,
+            correctOptionIds: [2], // "Three",
+            explanation: "Three [silmarils](https://en.wikipedia.org/wiki/Silmarils) were made",
+            explanationParseMode: ParseMode.MarkdownV2
+        );
 
-        private ITelegramBotClient BotClient => _fixture.BotClient;
+        Assert.Equal(MessageType.Poll, message.Type);
+        Assert.NotNull(message.Poll);
+        Assert.NotEmpty(message.Poll.Id);
+        Assert.False(message.Poll.IsClosed);
+        Assert.False(message.Poll.IsAnonymous);
+        Assert.Equal(PollType.Quiz, message.Poll.Type);
+        Assert.False(message.Poll.AllowsMultipleAnswers);
+        Assert.Single(message.Poll.CorrectOptionIds, 2);
+        Assert.Null(message.Poll.OpenPeriod);
+        Assert.Null(message.Poll.CloseDate);
 
-        public QuizPollTests(TestsFixture fixture, QuizPollTestsFixture classFixture)
-        {
-            _fixture = fixture;
-            _classFixture = classFixture;
-        }
+        Assert.Equal("How many silmarils were made in J. R. R. Tolkiens's Silmarillion?", message.Poll.Question);
+        Assert.Equal(3, message.Poll.Options.Length);
+        Assert.Equal("One", message.Poll.Options[0].Text);
+        Assert.Equal("Ten", message.Poll.Options[1].Text);
+        Assert.Equal("Three", message.Poll.Options[2].Text);
+        Assert.All(message.Poll.Options, option => Assert.Equal(0, option.VoterCount));
+        Assert.Equal("Three silmarils were made", message.Poll.Explanation);
+        Assert.NotNull(message.Poll.ExplanationEntities);
+        Assert.Single(message.Poll.ExplanationEntities);
+        Assert.Contains(
+            message.Poll.ExplanationEntities,
+            entity => entity.Type == MessageEntityType.TextLink &&
+                      entity.Url == "https://en.wikipedia.org/wiki/Silmarils"
+        );
 
-        [OrderedFact(
-            "Should send public quiz poll",
-            Skip = "Poll tests fail too often for unknown reasons")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendPoll)]
-        public async Task Should_Send_Public_Quiz_Poll()
-        {
-            Message message = await _fixture.BotClient.SendPollAsync(
-                chatId: _fixture.SupergroupChat,
-                question: "How many silmarils were made in J. R. R. Tolkiens's Silmarillion?",
-                options: new [] { "One", "Ten", "Three" },
-                isAnonymous: false,
-                type: PollType.Quiz,
-                correctOptionId: 2 // "Three"
-            );
+        classFixture.OriginalPollMessage = message;
+    }
 
-            Assert.Equal(MessageType.Poll, message.Type);
-            Assert.NotEmpty(message.Poll.Id);
-            Assert.False(message.Poll.IsClosed);
-            Assert.False(message.Poll.IsAnonymous);
-            Assert.Equal("quiz", message.Poll.Type);
-            Assert.False(message.Poll.AllowsMultipleAnswers);
-            Assert.Equal(2, message.Poll.CorrectOptionId);
+    [OrderedFact(
+        "Should receive a poll answer update")]
+    public async Task Should_Receive_Poll_Answer_Update()
+    {
+        await Fixture.SendTestInstructionsAsync(
+            "🗳 Choose any answer in the quiz above 👆"
+        );
 
-            Assert.Equal("How many silmarils were made in J. R. R. Tolkiens's Silmarillion?", message.Poll.Question);
-            Assert.Equal(3, message.Poll.Options.Length);
-            Assert.Equal("One", message.Poll.Options[0].Text);
-            Assert.Equal("Ten", message.Poll.Options[1].Text);
-            Assert.Equal("Three", message.Poll.Options[2].Text);
-            Assert.All(message.Poll.Options, option => Assert.Equal(0, option.VoterCount));
+        Poll poll = classFixture.OriginalPollMessage.Poll;
 
-            _classFixture.OriginalPollMessage = message;
-        }
+        Update pollAnswerUpdates = await Fixture.UpdateReceiver.GetUpdateAsync(
+            update => update.PollAnswer?.OptionIds.Length == 1 &&
+                      update.PollAnswer.PollId == poll!.Id,
+            updateTypes: UpdateType.PollAnswer
+        );
 
-        [OrderedFact(
-            "Should receive a poll answer update",
-            Skip = "Poll tests fail too often for unknown reasons")]
-        public async Task Should_Receive_Poll_Answer_Update()
-        {
-            await _fixture.SendTestInstructionsAsync(
-                "🗳 Choose any answer in the quiz above 👆"
-            );
+        PollAnswer pollAnswer = pollAnswerUpdates.PollAnswer;
 
-            Poll poll = _classFixture.OriginalPollMessage.Poll;
+        Assert.NotNull(pollAnswer);
+        Assert.Equal(poll!.Id, pollAnswer.PollId);
+        Assert.NotNull(pollAnswer.User);
+        Assert.All(
+            pollAnswer.OptionIds,
+            optionId => Assert.True(optionId < poll.Options.Length)
+        );
 
-            Update pollAnswerUpdates = (await _fixture.UpdateReceiver.GetUpdatesAsync(
-                update => update.PollAnswer.OptionIds.Length == 1 &&
-                          update.PollAnswer.PollId == poll.Id,
-                updateTypes: UpdateType.PollAnswer
-            )).Last();
+        classFixture.PollAnswer = pollAnswer;
+    }
 
-            PollAnswer pollAnswer = pollAnswerUpdates.PollAnswer;
+    [OrderedFact(
+        "Should stop quiz poll")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.StopPoll)]
+    public async Task Should_Stop_Quiz_Poll()
+    {
+        // don't close poll immediately, without a delay the resulting poll object
+        // doesn't match up with the previously received poll answer
+        await Task.Delay(TimeSpan.FromSeconds(5));
 
-            Assert.Equal(poll.Id, pollAnswer.PollId);
-            Assert.NotNull(pollAnswer.User);
-            Assert.All(
-                pollAnswer.OptionIds,
-                optionId => Assert.True(optionId < poll.Options.Length)
-            );
+        Poll closedPoll = await BotClient.StopPoll(
+            chatId: classFixture.OriginalPollMessage.Chat,
+            messageId: classFixture.OriginalPollMessage.Id
+        );
 
-            _classFixture.PollAnswer = pollAnswer;
-        }
+        Assert.Equal(classFixture.OriginalPollMessage.Poll!.Id, closedPoll.Id);
+        Assert.True(closedPoll.IsClosed);
 
-        [OrderedFact(
-            "Should stop quiz poll",
-            Skip = "Poll tests fail too often for unknown reasons")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.StopPoll)]
-        public async Task Should_Stop_Quiz_Poll()
-        {
-            // don't close poll immediately, without a delay the resulting poll object
-            // doesn't match up with the previously received poll answer
-            await Task.Delay(TimeSpan.FromSeconds(5));
+        PollAnswer pollAnswer = classFixture.PollAnswer;
 
-            Poll closedPoll = await BotClient.StopPollAsync(
-                chatId: _classFixture.OriginalPollMessage.Chat,
-                messageId: _classFixture.OriginalPollMessage.MessageId
-            );
-
-            Assert.Equal(_classFixture.OriginalPollMessage.Poll.Id, closedPoll.Id);
-            Assert.True(closedPoll.IsClosed);
-
-            PollAnswer pollAnswer = _classFixture.PollAnswer;
-
-            Assert.All(
-                pollAnswer.OptionIds,
-                optionId => Assert.True(closedPoll.Options[optionId].VoterCount > 0)
-            );
-        }
+        Assert.All(
+            pollAnswer.OptionIds,
+            optionId => Assert.True(closedPoll.Options[optionId].VoterCount > 0)
+        );
     }
 }

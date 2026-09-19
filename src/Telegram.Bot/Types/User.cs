@@ -1,130 +1,78 @@
-﻿using System;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types;
 
-namespace Telegram.Bot.Types
+/// <summary>This object represents a Telegram user or bot.</summary>
+public partial class User
 {
-    /// <summary>
-    /// This object represents a Telegram user or bot.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class User : IEquatable<User>
-    {
-        /// <summary>
-        /// Unique identifier for this user or bot
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int Id { get; set; }
+    /// <summary>Unique identifier for this user or bot.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public long Id { get; set; }
 
-        /// <summary>
-        /// True, if this user is a bot
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public bool IsBot { get; set; }
+    /// <summary><see langword="true"/>, if this user is a bot</summary>
+    [JsonPropertyName("is_bot")]
+    public bool IsBot { get; set; }
 
-        /// <summary>
-        /// User's or bot's first name
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string FirstName { get; set; }
+    /// <summary>User's or bot's first name</summary>
+    [JsonPropertyName("first_name")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string FirstName { get; set; } = default!;
 
-        /// <summary>
-        /// Optional. User's or bot's last name
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string LastName { get; set; }
+    /// <summary><em>Optional</em>. User's or bot's last name</summary>
+    [JsonPropertyName("last_name")]
+    public string? LastName { get; set; }
 
-        /// <summary>
-        /// Optional. User's or bot's username
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Username { get; set; }
+    /// <summary><em>Optional</em>. User's or bot's username</summary>
+    public string? Username { get; set; }
 
-        /// <summary>
-        /// Optional. IETF language tag of the user's language
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string LanguageCode { get; set; }
+    /// <summary><em>Optional</em>. <a href="https://en.wikipedia.org/wiki/IETF_language_tag">IETF language tag</a> of the user's language</summary>
+    [JsonPropertyName("language_code")]
+    public string? LanguageCode { get; set; }
 
-        /// <summary>
-        /// Optional. True, if the bot can be invited to groups. Returned only in getMe
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool? CanJoinGroups { get; set; }
+    /// <summary><em>Optional</em>. <see langword="true"/>, if this user is a Telegram Premium user</summary>
+    [JsonPropertyName("is_premium")]
+    public bool IsPremium { get; set; }
 
-        /// <summary>
-        /// Optional. True, if privacy mode is disabled for the bot. Returned only in getMe
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool? CanReadAllGroupMessages { get; set; }
+    /// <summary><em>Optional</em>. <see langword="true"/>, if this user added the bot to the attachment menu</summary>
+    [JsonPropertyName("added_to_attachment_menu")]
+    public bool AddedToAttachmentMenu { get; set; }
 
-        /// <summary>
-        /// Optional. True, if the bot supports inline queries. Returned only in getMe
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool? SupportsInlineQueries { get; set; }
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot can be invited to groups. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("can_join_groups")]
+    public bool CanJoinGroups { get; set; }
 
-        /// <inheritdoc />
-        public override bool Equals(object obj) => Equals(obj as User);
+    /// <summary><em>Optional</em>. <see langword="true"/>, if <a href="https://core.telegram.org/bots/features#privacy-mode">privacy mode</a> is disabled for the bot. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("can_read_all_group_messages")]
+    public bool CanReadAllGroupMessages { get; set; }
 
-        /// <inheritdoc />
-        public bool Equals(User other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot supports guest queries from chats it is not a member of. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("supports_guest_queries")]
+    public bool SupportsGuestQueries { get; set; }
 
-            return Id == other.Id &&
-                   IsBot == other.IsBot &&
-                   FirstName == other.FirstName &&
-                   LastName == other.LastName &&
-                   Username == other.Username &&
-                   LanguageCode == other.LanguageCode &&
-                   CanJoinGroups == other.CanJoinGroups &&
-                   CanReadAllGroupMessages == other.CanReadAllGroupMessages &&
-                   SupportsInlineQueries == other.SupportsInlineQueries;
-        }
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot supports inline queries. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("supports_inline_queries")]
+    public bool SupportsInlineQueries { get; set; }
 
-        /// <summary>
-        /// Compares two users for equality
-        /// </summary>
-        /// <param name="lhs">Left-hand side user in expression</param>
-        /// <param name="rhs">Right-hand side user in expression</param>
-        /// <returns>true if users are equal, otherwise false</returns>
-        public static bool operator ==(User lhs, User rhs) =>
-            lhs?.Equals(rhs) ?? ReferenceEquals(rhs, null);
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot can be connected to a user account to manage it. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("can_connect_to_business")]
+    public bool CanConnectToBusiness { get; set; }
 
-        /// <summary>
-        /// Compares two users for inequality
-        /// </summary>
-        /// <param name="lhs">Left-hand side user in expression</param>
-        /// <param name="rhs">Right-hand side user in expression</param>
-        /// <returns>true if users are not equal, otherwise false</returns>
-        public static bool operator !=(User lhs, User rhs) => !(lhs == rhs);
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot has a main Web App. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("has_main_web_app")]
+    public bool HasMainWebApp { get; set; }
 
-        /// <inheritdoc />
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                // ReSharper disable NonReadonlyMemberInGetHashCode
-                var hashCode = Id;
-                hashCode = (hashCode * 397) ^ IsBot.GetHashCode();
-                hashCode = (hashCode * 397) ^ (FirstName?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (LastName?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (Username?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (LanguageCode?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (CanJoinGroups?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (CanReadAllGroupMessages?.GetHashCode() ?? 0);
-                hashCode = (hashCode * 397) ^ (SupportsInlineQueries?.GetHashCode() ?? 0);
-                // ReSharper restore NonReadonlyMemberInGetHashCode
-                return hashCode;
-            }
-        }
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot has forum topic mode enabled in private chats. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("has_topics_enabled")]
+    public bool HasTopicsEnabled { get; set; }
 
-        /// <inheritdoc/>
-        public override string ToString() => (Username == null
-                                                 ? FirstName + LastName?.Insert(0, " ")
-                                                 : $"@{Username}") +
-                                             $" ({Id})";
-    }
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot allows users to create and delete topics in private chats. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("allows_users_to_create_topics")]
+    public bool AllowsUsersToCreateTopics { get; set; }
+
+    /// <summary><em>Optional</em>. <see langword="true"/>, if other bots can be created to be controlled by the bot. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("can_manage_bots")]
+    public bool CanManageBots { get; set; }
+
+    /// <summary><em>Optional</em>. <see langword="true"/>, if the bot supports join request queries and can be assigned to process them. Returned only in <see cref="TelegramBotClientExtensions.GetMe">GetMe</see>.</summary>
+    [JsonPropertyName("supports_join_request_queries")]
+    public bool SupportsJoinRequestQueries { get; set; }
 }

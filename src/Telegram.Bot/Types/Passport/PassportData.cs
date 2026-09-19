@@ -1,25 +1,14 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types.Passport;
 
-// ReSharper disable once CheckNamespace
-namespace Telegram.Bot.Types.Passport
+/// <summary>Describes Telegram Passport data shared with the bot by the user.</summary>
+public partial class PassportData
 {
-    /// <summary>
-    /// Contains information about Telegram Passport data shared with the bot by the user.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class PassportData
-    {
-        /// <summary>
-        /// Array with information about documents and other Telegram Passport elements that was shared with the bot.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public EncryptedPassportElement[] Data { get; set; }
+    /// <summary>Array with information about documents and other Telegram Passport elements that was shared with the bot</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public EncryptedPassportElement[] Data { get; set; } = default!;
 
-        /// <summary>
-        /// Encrypted credentials required to decrypt the data.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public EncryptedCredentials Credentials { get; set; }
-    }
+    /// <summary>Encrypted credentials required to decrypt the data</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public EncryptedCredentials Credentials { get; set; } = default!;
 }

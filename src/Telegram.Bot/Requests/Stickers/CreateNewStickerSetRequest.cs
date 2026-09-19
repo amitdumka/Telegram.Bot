@@ -1,83 +1,32 @@
-﻿using System.Net.Http;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InputFiles;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Requests;
 
-// ReSharper disable once CheckNamespace
-namespace Telegram.Bot.Requests
+/// <summary>Use this method to create a new sticker set owned by a user. The bot will be able to edit the sticker set thus created.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public partial class CreateNewStickerSetRequest() : FileRequestBase<bool>("createNewStickerSet"), IUserTargetable
 {
-    /// <summary>
-    /// Create new sticker set owned by a user. The bot will be able to edit the created sticker set. Returns True on success.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class CreateNewStickerSetRequest : FileRequestBase<bool>
-    {
-        /// <summary>
-        /// User identifier of sticker set owner
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int UserId { get; }
+    /// <summary>User identifier of created sticker set owner</summary>
+    [JsonPropertyName("user_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required long UserId { get; set; }
 
-        /// <summary>
-        /// Short name of sticker set, to be used in t.me/addstickers/ URLs (e.g., animals). Can contain only english letters, digits and underscores. Must begin with a letter, can't contain consecutive underscores and must end in “_by_[bot username]”. [bot_username] is case insensitive. 1-64 characters.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Name { get; }
+    /// <summary>Short name of sticker set, to be used in <c>t.me/addstickers/</c> URLs (e.g., <em>animals</em>). Can contain only English letters, digits and underscores. Must begin with a letter, can't contain consecutive underscores and must end in <c>"_by_&lt;BotUsername&gt;"</c>. <c>&lt;BotUsername&gt;</c> is case insensitive. 1-64 characters.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required string Name { get; set; }
 
-        /// <summary>
-        /// Sticker set title, 1-64 characters
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Title { get; }
+    /// <summary>Sticker set title, 1-64 characters</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required string Title { get; set; }
 
-        /// <summary>
-        /// Png image with the sticker, must be up to 512 kilobytes in size, dimensions must not exceed 512px, and either width or height must be exactly 512px.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public InputOnlineFile PngSticker { get; }
+    /// <summary>A list of 1-50 initial stickers to be added to the sticker set</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required IEnumerable<InputSticker> Stickers { get; set; }
 
-        /// <summary>
-        /// One or more emoji corresponding to the sticker
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Emojis { get; }
+    /// <summary>Type of stickers in the set, pass <see cref="StickerType.Regular">Regular</see>, <see cref="StickerType.Mask">Mask</see>, or <see cref="StickerType.CustomEmoji">CustomEmoji</see>. By default, a regular sticker set is created.</summary>
+    [JsonPropertyName("sticker_type")]
+    public StickerType? StickerType { get; set; }
 
-        /// <summary>
-        /// Pass True, if a set of mask stickers should be created
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public bool ContainsMasks { get; set; }
-
-        /// <summary>
-        /// One or more emoji corresponding to the sticker
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public MaskPosition MaskPosition { get; set; }
-
-        /// <summary>
-        /// Initializes a new request with userId, name, pngSticker and emojis
-        /// </summary>
-        /// <param name="userId">User identifier of sticker set owner</param>
-        /// <param name="name">Sticker set name</param>
-        /// <param name="title">Sticker set title, 1-64 characters</param>
-        /// <param name="pngSticker">Png image with the sticker</param>
-        /// <param name="emojis">One or more emoji corresponding to the sticker</param>
-        public CreateNewStickerSetRequest(int userId, string name, string title, InputOnlineFile pngSticker, string emojis)
-            : base("createNewStickerSet")
-        {
-            UserId = userId;
-            Name = name;
-            Title = title;
-            PngSticker = pngSticker;
-            Emojis = emojis;
-        }
-
-        /// <inheritdoc />
-        public override HttpContent ToHttpContent() =>
-            PngSticker.FileType == FileType.Stream
-                ? ToMultipartFormDataContent("png_sticker", PngSticker)
-                : base.ToHttpContent();
-    }
+    /// <summary>Pass <see langword="true"/> if stickers in the sticker set must be repainted to the color of text when used in messages, the accent color if used as emoji status, white on chat photos, or another appropriate color based on context; for custom emoji sticker sets only</summary>
+    [JsonPropertyName("needs_repainting")]
+    public bool NeedsRepainting { get; set; }
 }

@@ -1,29 +1,11 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Requests;
 
-// ReSharper disable once CheckNamespace
-namespace Telegram.Bot.Requests
+/// <summary>Use this method to delete a sticker from a set created by the bot.</summary>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public partial class DeleteStickerFromSetRequest() : RequestBase<bool>("deleteStickerFromSet")
 {
-    /// <summary>
-    /// Delete a sticker from a set created by the bot. Returns True on success.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class DeleteStickerFromSetRequest : RequestBase<bool>
-    {
-        /// <summary>
-        /// File identifier of the sticker
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string Sticker { get; }
-
-        /// <summary>
-        /// Initializes a new request with sticker
-        /// </summary>
-        /// <param name="sticker">File identifier of the sticker</param>
-        public DeleteStickerFromSetRequest(string sticker)
-            : base("deleteStickerFromSet")
-        {
-            Sticker = sticker;
-        }
-    }
+    /// <summary>File identifier of the sticker</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required InputFileId Sticker { get; set; }
 }

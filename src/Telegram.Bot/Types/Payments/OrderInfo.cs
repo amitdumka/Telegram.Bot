@@ -1,36 +1,20 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types.Payments;
 
-namespace Telegram.Bot.Types.Payments
+/// <summary>This object represents information about an order.</summary>
+public partial class OrderInfo
 {
-    /// <summary>
-    /// This object represents information about an order.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class OrderInfo
-    {
-        /// <summary>
-        /// Optional. User name
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Name { get; set; }
+    /// <summary><em>Optional</em>. User name</summary>
+    public string? Name { get; set; }
 
-        /// <summary>
-        /// Optional. User's phone number
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string PhoneNumber { get; set; }
+    /// <summary><em>Optional</em>. User's phone number</summary>
+    [JsonPropertyName("phone_number")]
+    public string? PhoneNumber { get; set; }
 
-        /// <summary>
-        /// Optional. User email
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Email { get; set; }
+    /// <summary><em>Optional</em>. User email</summary>
+    public string? Email { get; set; }
 
-        /// <summary>
-        /// Optional. User shipping address
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public ShippingAddress ShippingAddress { get; set; }
-    }
+    /// <summary><em>Optional</em>. User shipping address</summary>
+    [JsonPropertyName("shipping_address")]
+    public ShippingAddress? ShippingAddress { get; set; }
 }

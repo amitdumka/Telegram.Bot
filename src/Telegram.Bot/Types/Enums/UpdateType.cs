@@ -1,83 +1,64 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using System.Runtime.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types.Enums;
 
-namespace Telegram.Bot.Types.Enums
+/// <summary>The type of <see cref="Update"/></summary>
+[JsonConverter(typeof(EnumConverter<UpdateType>))]
+public enum UpdateType
 {
-    /// <summary>
-    /// The type of an <see cref="Update"/>
-    /// </summary>
-    [JsonConverter(typeof(StringEnumConverter), true)]
-    public enum UpdateType
-    {
-        /// <summary>
-        /// Update Type is unknown
-        /// </summary>
-        Unknown = 0,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains a <see cref="Types.Message"/>.
-        /// </summary>
-        Message,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains an <see cref="Types.InlineQuery"/>.
-        /// </summary>
-        [EnumMember(Value = "inline_query")]
-        InlineQuery,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains a <see cref="Types.ChosenInlineResult"/>.
-        /// </summary>
-        [EnumMember(Value = "chosen_inline_result")]
-        ChosenInlineResult,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains a <see cref="Types.CallbackQuery"/>
-        /// </summary>
-        [EnumMember(Value = "callback_query")]
-        CallbackQuery,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains an edited <see cref="Types.Message"/>
-        /// </summary>
-        [EnumMember(Value = "edited_message")]
-        EditedMessage,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains a channel post <see cref="Types.Message"/>
-        /// </summary>
-        [EnumMember(Value = "channel_post")]
-        ChannelPost,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains an edited channel post <see cref="Types.Message"/>
-        /// </summary>
-        [EnumMember(Value = "edited_channel_post")]
-        EditedChannelPost,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains an <see cref="ShippingQuery"/>
-        /// </summary>
-        [EnumMember(Value = "shipping_query")]
-        ShippingQuery,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains an <see cref="PreCheckoutQuery"/>
-        /// </summary>
-        [EnumMember(Value = "pre_checkout_query")]
-        PreCheckoutQuery,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains an <see cref="Poll"/>
-        /// </summary>
-        [EnumMember(Value = "poll")]
-        Poll,
-
-        /// <summary>
-        /// The <see cref="Update"/> contains an <see cref="PollAnswer"/>
-        /// </summary>
-        [EnumMember(Value = "poll_answer")]
-        PollAnswer,
-    }
+    /// <summary><see cref="Update"/> type is unknown</summary>
+    Unknown = 0,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.Message"/></summary>
+    Message,
+    /// <summary>The <see cref="Update"/> contains an <see cref="Update.InlineQuery"/></summary>
+    InlineQuery,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.ChosenInlineResult"/></summary>
+    ChosenInlineResult,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.CallbackQuery"/></summary>
+    CallbackQuery,
+    /// <summary>The <see cref="Update"/> contains an <see cref="Update.EditedMessage"/></summary>
+    EditedMessage,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.ChannelPost"/></summary>
+    ChannelPost,
+    /// <summary>The <see cref="Update"/> contains an <see cref="Update.EditedChannelPost"/></summary>
+    EditedChannelPost,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.ShippingQuery"/></summary>
+    ShippingQuery,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.PreCheckoutQuery"/></summary>
+    PreCheckoutQuery,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.Poll"/></summary>
+    Poll,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.PollAnswer"/></summary>
+    PollAnswer,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.MyChatMember"/></summary>
+    MyChatMember,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.ChatMember"/></summary>
+    ChatMember,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.ChatJoinRequest"/></summary>
+    ChatJoinRequest,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.MessageReaction"/></summary>
+    MessageReaction,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.MessageReactionCount"/></summary>
+    MessageReactionCount,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.ChatBoost"/></summary>
+    ChatBoost,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.RemovedChatBoost"/></summary>
+    RemovedChatBoost,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.BusinessConnection"/></summary>
+    BusinessConnection,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.BusinessMessage"/></summary>
+    BusinessMessage,
+    /// <summary>The <see cref="Update"/> contains an <see cref="Update.EditedBusinessMessage"/></summary>
+    EditedBusinessMessage,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.DeletedBusinessMessages"/></summary>
+    DeletedBusinessMessages,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.PurchasedPaidMedia"/></summary>
+    PurchasedPaidMedia,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.ManagedBot"/></summary>
+    ManagedBot,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.GuestMessage"/></summary>
+    GuestMessage,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.Subscription"/></summary>
+    Subscription,
+    /// <summary>The <see cref="Update"/> contains a <see cref="Update.StoppedMessageGeneration"/></summary>
+    StoppedMessageGeneration,
 }

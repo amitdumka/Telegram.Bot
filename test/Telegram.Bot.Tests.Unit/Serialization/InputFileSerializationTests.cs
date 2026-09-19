@@ -1,58 +1,42 @@
 using System.IO;
-using Newtonsoft.Json;
-using Telegram.Bot.Types.Enums;
-using Telegram.Bot.Types.InputFiles;
+using Telegram.Bot.Types;
 using Xunit;
 
-namespace Telegram.Bot.Tests.Unit.Serialization
+namespace Telegram.Bot.Tests.Unit.Serialization;
+
+public class InputFileSerializationTests
 {
-    public class InputFileSerializationTests
+    [Fact(DisplayName = "Should serialize & deserialize input file from stream")]
+    public void Should_Serialize_InputFile()
     {
-        [Fact(DisplayName = "Should serialize & deserialize input file stream")]
-        public void Should_Serialize_Input_File_Stream()
-        {
-            InputFileStream inputFile = new MemoryStream();
+        const string fileName = "myFile";
+        using MemoryStream memoryStream = new();
+        InputFileStream inputFile = new(memoryStream, fileName);
 
-            string json = JsonConvert.SerializeObject(inputFile);
-            InputFileStream obj = JsonConvert.DeserializeObject<InputFileStream>(json);
+        string serializedValue = JsonSerializer.Serialize(inputFile, JsonBotAPI.Options);
 
-            Assert.Equal("null", json);
-            Assert.Equal(Stream.Null, obj.Content);
-            Assert.Equal(FileType.Stream, obj.FileType);
-            Assert.Null(obj.FileName);
-        }
+        Assert.Equal(@$"""attach://0""", serializedValue);
+    }
 
-        [Fact(DisplayName = "Should serialize & deserialize input file with file_id")]
-        public void Should_Serialize_Input_File_File_Id()
-        {
-            const string fileId = "This-is-a-file_id";
-            InputTelegramFile inputFile = fileId;
+    [Fact(DisplayName = "Should serialize & deserialize input file with file_id")]
+    public void Should_Serialize_FileId()
+    {
+        const string fileId = "This-is-a-file_id";
+        InputFileId inputFileId = new(fileId);
 
-            string json = JsonConvert.SerializeObject(inputFile);
-            InputTelegramFile obj = JsonConvert.DeserializeObject<InputTelegramFile>(json);
+        string serializedValue = JsonSerializer.Serialize(inputFileId, JsonBotAPI.Options);
 
-            Assert.Equal($@"""{fileId}""", json);
-            Assert.Equal(fileId, obj.FileId);
-            Assert.Equal(FileType.Id, obj.FileType);
-            Assert.Null(obj.Content);
-            Assert.Null(obj.FileName);
-        }
+        Assert.Equal($"\"{fileId}\"", serializedValue);
+    }
 
-        [Fact(DisplayName = "Should serialize & deserialize input file with URL")]
-        public void Should_Serialize_Input_File_Url()
-        {
-            const string url = "http://github.org/TelgramBots";
-            InputOnlineFile inputFile = url;
+    [Fact(DisplayName = "Should serialize & deserialize input file with URL")]
+    public void Should_Serialize_InputUrlFile()
+    {
+        Uri url = new("https://github.com/TelegramBots");
+        InputFileUrl inputFileUrl = new(url);
 
-            string json = JsonConvert.SerializeObject(inputFile);
-            InputOnlineFile obj = JsonConvert.DeserializeObject<InputOnlineFile>(json);
+        string serializedValue = JsonSerializer.Serialize(inputFileUrl, JsonBotAPI.Options);
 
-            Assert.Equal($@"""{url}""", json);
-            Assert.Equal(url, obj.Url);
-            Assert.Equal(FileType.Url, obj.FileType);
-            Assert.Null(obj.Content);
-            Assert.Null(obj.FileName);
-            Assert.Null(obj.FileId);
-        }
+        Assert.Equal($"\"{url}\"", serializedValue);
     }
 }

@@ -1,30 +1,17 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types;
 
-namespace Telegram.Bot.Types
+/// <summary>This object represents a <a href="https://telegram.org/blog/video-messages-and-telescope">video message</a>.</summary>
+public partial class VideoNote : FileBase
 {
-    /// <summary>
-    /// This object represents a video message (available in Telegram apps as of v.4.0).
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class VideoNote : FileBase
-    {
-        /// <summary>
-        /// Video width and height as defined by sender
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int Length { get; set; }
+    /// <summary>Video width and height (diameter of the video message) as defined by the sender</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Length { get; set; }
 
-        /// <summary>
-        /// Duration of the video in seconds as defined by sender
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int Duration { get; set; }
+    /// <summary>Duration of the video in seconds as defined by the sender</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Duration { get; set; }
 
-        /// <summary>
-        /// Optional. Video thumbnail
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public PhotoSize Thumb { get; set; }
-    }
+    /// <summary><em>Optional</em>. Video thumbnail</summary>
+    public PhotoSize? Thumbnail { get; set; }
 }

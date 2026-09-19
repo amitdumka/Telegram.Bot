@@ -1,3 +1,5 @@
+using System;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,432 +10,648 @@ using Telegram.Bot.Types.Enums;
 using Telegram.Bot.Types.Payments;
 using Telegram.Bot.Types.ReplyMarkups;
 using Xunit;
+using PreliminaryInvoice = Telegram.Bot.Tests.Integ.Payments.PaymentsBuilder.PreliminaryInvoice;
 
-namespace Telegram.Bot.Tests.Integ.Payments
+namespace Telegram.Bot.Tests.Integ.Payments;
+
+[Collection(Constants.TestCollections.Payment)]
+[Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
+[TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
+public class PaymentTests(TestsFixture fixture, PaymentFixture classFixture)
+    : TestClass(fixture), IClassFixture<PaymentFixture>, IAsyncLifetime
 {
-    [Collection(Constants.TestCollections.Payment)]
-    [Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
-    [TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
-    public class PaymentTests : IClassFixture<PaymentFixture>
+    [OrderedFact("Should send an invoice")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    public async Task Should_Send_Invoice()
     {
-        private ITelegramBotClient BotClient => _fixture.BotClient;
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Lunar crater \"Copernicus\"")
+                .WithDescription(description:
+                    "It was named after the astronomer Nicolaus Copernicus. It may have been created by debris" +
+                    " from the breakup of the parent body of asteroid 495 Eulalia 800 million years ago.")
+                .WithProductPrice(label: "Price of land inside of the crater", amount: 400_000)
+                .WithProductPrice(label: "One-time fee", amount: 10_000)
+                .WithPhoto(
+                    url: "https://upload.wikimedia.org/wikipedia/commons/d/d4/Copernicus_%28LRO%29_2.png",
+                    width: 1264,
+                    height: 1264
+                ))
+            .WithCurrency(currency: "USD")
+            .WithStartParameter(startParameter: "crater-copernicus")
+            .WithPayload(payload: "<my-payload>")
+            .WithPaymentProviderToken(paymentsProviderToken: classFixture.PaymentProviderToken)
+            .ToChat(chatId: classFixture.PrivateChat.Id);
 
-        private readonly TestsFixture _fixture;
+        PreliminaryInvoice preliminaryInvoice = paymentsBuilder.GetPreliminaryInvoice();
 
-        private readonly PaymentFixture _classFixture;
+        Message message = await paymentsBuilder.MakeInvoiceRequest(Fixture);
+        Invoice invoice = message.Invoice;
 
-        public PaymentTests(TestsFixture fixture, PaymentFixture classFixture)
-        {
-            _fixture = fixture;
-            _classFixture = classFixture;
-        }
-
-        [OrderedFact("Should send an invoice")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        public async Task Should_Send_Invoice()
-        {
-            await _fixture.SendTestInstructionsAsync(
-                "Click on *Pay <amount>* and send your shipping address. " +
-                "You should see shipment options afterwards. " +
-                "Transaction should be completed.",
-                chatid: _classFixture.PrivateChat.Id
-            );
-
-            _classFixture.Payload = "my-payload";
-            const string url = "https://cdn.pixabay.com/photo/2017/09/07/08/54/money-2724241_640.jpg";
-
-            LabeledPrice[] productPrices =
-            {
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_1", 150),
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_2", 2029),
-            };
-
-            Invoice invoice = new Invoice
-            {
-                Title = "PRODUCT_TITLE",
-                Currency = "CAD",
-                StartParameter = "start_param",
-                TotalAmount = productPrices.Sum(p => p.Amount),
-                Description = "PRODUCT_DESCRIPTION",
-            };
-
-            Message message = await BotClient.SendInvoiceAsync(
-                chatId: (int) _classFixture.PrivateChat.Id,
-                title: invoice.Title,
-                description: invoice.Description,
-                payload: _classFixture.Payload,
-                providerToken: _classFixture.PaymentProviderToken,
-                startParameter: invoice.StartParameter,
-                currency: invoice.Currency,
-                prices: productPrices,
-                photoUrl: url,
-                photoWidth: 600,
-                photoHeight: 400,
-                needShippingAddress: true,
-                isFlexible: true,
-                needName: true,
-                needEmail: true,
-                needPhoneNumber: true
-            );
-
-            Assert.Equal(MessageType.Invoice, message.Type);
-            Assert.Equal(invoice.Title, message.Invoice.Title);
-            Assert.Equal(invoice.Currency, message.Invoice.Currency);
-            Assert.Equal(invoice.TotalAmount, message.Invoice.TotalAmount);
-            Assert.Equal(invoice.Description, message.Invoice.Description);
-
-            _classFixture.Invoice = message.Invoice;
-        }
-
-        [OrderedFact("Should receive shipping address query and reply with shipping options")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerShippingQuery)]
-        public async Task Should_Answer_Shipping_Query_With_Ok()
-        {
-            LabeledPrice[] shippingPrices =
-            {
-                new LabeledPrice("PART_OF_SHIPPING_TOTAL_PRICE_1", 500),
-                new LabeledPrice("PART_OF_SHIPPING_TOTAL_PRICE_2", 299),
-            };
-
-            ShippingOption shippingOption = new ShippingOption
-            {
-                Id = "option1",
-                Title = "OPTION-1",
-                Prices = shippingPrices,
-            };
-
-            ShippingOption[] shippingOptions =
-            {
-                shippingOption
-            };
-
-            _classFixture.ShippingOption = shippingOption;
-
-            Update shippingUpdate = await GetShippingQueryUpdate();
-
-            await _fixture.BotClient.AnswerShippingQueryAsync(
-                shippingQueryId: shippingUpdate.ShippingQuery.Id,
-                shippingOptions: shippingOptions
-            );
-
-            Assert.Equal(UpdateType.ShippingQuery, shippingUpdate.Type);
-            Assert.Equal(_classFixture.Payload, shippingUpdate.ShippingQuery.InvoicePayload);
-            Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.CountryCode);
-            Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.City);
-            Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.State);
-            Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.StreetLine1);
-            Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.PostCode);
-        }
-
-        [OrderedFact("Should send invoice for no shipment option, and reply pre-checkout query with OK.")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerPreCheckoutQuery)]
-        public async Task Should_Answer_PreCheckout_Query_With_Ok_And_Shipment_Option()
-        {
-            Update preCheckoutUpdate = await GetPreCheckoutQueryUpdate();
-            PreCheckoutQuery query = preCheckoutUpdate.PreCheckoutQuery;
-
-            await _fixture.BotClient.AnswerPreCheckoutQueryAsync(
-                preCheckoutQueryId: query.Id
-            );
-
-            int totalAmount = _classFixture.Invoice.TotalAmount +
-                              _classFixture.ShippingOption.Prices.Sum(p => p.Amount);
-
-            Assert.Equal(UpdateType.PreCheckoutQuery, preCheckoutUpdate.Type);
-            Assert.NotNull(query.Id);
-            Assert.Equal(_classFixture.Payload, query.InvoicePayload);
-            Assert.Equal(totalAmount, query.TotalAmount);
-            Assert.Equal(_classFixture.Invoice.Currency, query.Currency);
-            Assert.Contains(query.From.Username, _fixture.UpdateReceiver.AllowedUsernames);
-            Assert.NotNull(query.OrderInfo);
-            Assert.NotNull(query.OrderInfo.Email);
-            Assert.NotNull(query.OrderInfo.Name);
-            Assert.NotNull(query.OrderInfo.PhoneNumber);
-            Assert.Equal(_classFixture.ShippingOption.Id, query.ShippingOptionId);
-        }
-
-        [OrderedFact("Should receive successful payment.")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerPreCheckoutQuery)]
-        public async Task Should_Receive_Successful_Payment_With_Shipment_Option()
-        {
-            Update successfulPaymentUpdate = await GetSuccessfulPaymentUpdate();
-            SuccessfulPayment successfulPayment = successfulPaymentUpdate.Message.SuccessfulPayment;
-
-            int totalAmount = _classFixture.Invoice.TotalAmount +
-                              _classFixture.ShippingOption.Prices.Sum(p => p.Amount);
-
-            Assert.Equal(totalAmount, successfulPayment.TotalAmount);
-            Assert.Equal(_classFixture.Payload, successfulPayment.InvoicePayload);
-            Assert.Equal(_classFixture.Invoice.Currency, successfulPayment.Currency);
-            Assert.Equal(_classFixture.ShippingOption.Id, successfulPayment.ShippingOptionId);
-        }
-
-        [OrderedFact("Should receive shipping address query and reply with an error")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerShippingQuery)]
-        public async Task Should_Answer_Shipping_Query_With_Error()
-        {
-            await _fixture.SendTestInstructionsAsync(
-                "Click on *Pay <amount>* and send your shipping address. You should receive an error afterwards.",
-                chatid: _classFixture.PrivateChat.Id
-            );
-
-            const string payload = "shipping_query-error-payload";
-
-            LabeledPrice[] productPrices =
-            {
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_1", 150),
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_2", 2029),
-            };
-            Invoice invoice = new Invoice
-            {
-                Title = "PRODUCT_TITLE",
-                Currency = "CAD",
-                StartParameter = "start_param",
-                TotalAmount = productPrices.Sum(p => p.Amount),
-                Description = "PRODUCT_DESCRIPTION",
-            };
-
-            await _fixture.BotClient.SendInvoiceAsync(
-                chatId: (int) _classFixture.PrivateChat.Id,
-                title: invoice.Title,
-                description: invoice.Description,
-                payload: payload,
-                providerToken: _classFixture.PaymentProviderToken,
-                startParameter: invoice.StartParameter,
-                currency: invoice.Currency,
-                prices: productPrices,
-                needShippingAddress: true,
-                isFlexible: true
-            );
-
-            Update shippingUpdate = await GetShippingQueryUpdate();
-
-            await _fixture.BotClient.AnswerShippingQueryAsync(
-                shippingQueryId: shippingUpdate.ShippingQuery.Id,
-                errorMessage: "HUMAN_FRIENDLY_DELIVERY_ERROR_MESSAGE"
-            );
-        }
-
-        [OrderedFact("Should send invoice for no shipment option, and reply pre-checkout query with an error.")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerPreCheckoutQuery)]
-        public async Task Should_Answer_PreCheckout_Query_With_Error_For_No_Shipment_Option()
-        {
-            await _fixture.SendTestInstructionsAsync(
-                "Click on *Pay <amount>* and confirm payment.",
-                chatid: _classFixture.PrivateChat.Id
-            );
-
-            const string payload = "pre_checkout-error-payload";
-
-            LabeledPrice[] productPrices =
-            {
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_1", 150),
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_2", 2029),
-            };
-            Invoice invoice = new Invoice
-            {
-                Title = "PRODUCT_TITLE",
-                Currency = "USD",
-                StartParameter = "start_param",
-                TotalAmount = productPrices.Sum(p => p.Amount),
-                Description = "PRODUCT_DESCRIPTION",
-            };
-
-            await _fixture.BotClient.SendInvoiceAsync(
-                chatId: (int) _classFixture.PrivateChat.Id,
-                title: invoice.Title,
-                description: invoice.Description,
-                payload: payload,
-                providerToken: _classFixture.PaymentProviderToken,
-                startParameter: invoice.StartParameter,
-                currency: invoice.Currency,
-                prices: productPrices
-            );
-
-            Update preCheckoutUpdate = await GetPreCheckoutQueryUpdate();
-            PreCheckoutQuery query = preCheckoutUpdate.PreCheckoutQuery;
-
-            await _fixture.BotClient.AnswerPreCheckoutQueryAsync(
-                preCheckoutQueryId: query.Id,
-                errorMessage: "HUMAN_FRIENDLY_ERROR_MESSAGE"
-            );
-        }
-
-        [OrderedFact("Should throw exception when sending invoice with invalid provider data")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        public async Task Should_Throw_When_Send_Invoice_Invalid_Provider_Data()
-        {
-            const string payload = "my-payload";
-
-            LabeledPrice[] prices =
-            {
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_1", 150),
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_2", 2029),
-            };
-            Invoice invoice = new Invoice
-            {
-                Title = "PRODUCT_TITLE",
-                Currency = "CAD",
-                StartParameter = "start_param",
-                TotalAmount = prices.Sum(p => p.Amount),
-                Description = "PRODUCT_DESCRIPTION",
-            };
-
-            ApiRequestException exception = await Assert.ThrowsAnyAsync<ApiRequestException>(() =>
-                BotClient.SendInvoiceAsync(
-                    chatId: (int) _classFixture.PrivateChat.Id,
-                    title: invoice.Title,
-                    description: invoice.Description,
-                    payload: payload,
-                    providerToken: _classFixture.PaymentProviderToken,
-                    startParameter: invoice.StartParameter,
-                    currency: invoice.Currency,
-                    prices: prices,
-                    providerData: "INVALID-JSON"
-                ));
-
-            // ToDo: Add exception
-            Assert.Equal(400, exception.ErrorCode);
-            Assert.Equal("Bad Request: DATA_JSON_INVALID", exception.Message);
-        }
-
-        [OrderedFact("Should throw exception when answering shipping query with duplicate shipping Id")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        public async Task Should_Throw_When_Answer_Shipping_Query_With_Duplicate_Shipping_Id()
-        {
-            const string payload = "my-payload";
-
-            LabeledPrice[] productPrices =
-            {
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_1", 150),
-                new LabeledPrice("PART_OF_PRODUCT_PRICE_2", 2029),
-            };
-            Invoice invoice = new Invoice
-            {
-                Title = "PRODUCT_TITLE",
-                Currency = "USD",
-                StartParameter = "start_param",
-                TotalAmount = productPrices.Sum(p => p.Amount),
-                Description = "PRODUCT_DESCRIPTION",
-            };
-
-            await _fixture.BotClient.SendInvoiceAsync(
-                chatId: (int) _classFixture.PrivateChat.Id,
-                title: invoice.Title,
-                description: invoice.Description,
-                payload: payload,
-                providerToken: _classFixture.PaymentProviderToken,
-                startParameter: invoice.StartParameter,
-                currency: invoice.Currency,
-                prices: productPrices,
-                isFlexible: true
-            );
-
-            LabeledPrice[] shippingPrices =
-            {
-                new LabeledPrice("PART_OF_SHIPPING_TOTAL_PRICE_1", 500),
-                new LabeledPrice("PART_OF_SHIPPING_TOTAL_PRICE_2", 299),
-            };
-
-            ShippingOption shippingOption = new ShippingOption
-            {
-                Id = "option1",
-                Title = "OPTION-1",
-                Prices = shippingPrices,
-            };
-
-            Update shippingUpdate = await GetShippingQueryUpdate();
-
-            ApiRequestException exception = await Assert.ThrowsAnyAsync<ApiRequestException>(() =>
-                _fixture.BotClient.AnswerShippingQueryAsync(
-                    shippingQueryId: shippingUpdate.ShippingQuery.Id,
-                    shippingOptions: new[] {shippingOption, shippingOption}
-                )
-            );
-
-            // ToDo: Add exception
-            Assert.Equal(400, exception.ErrorCode);
-            Assert.Equal("Bad Request: SHIPPING_ID_DUPLICATE", exception.Message);
-
-            await _fixture.BotClient.AnswerShippingQueryAsync(
-                shippingQueryId: shippingUpdate.ShippingQuery.Id,
-                errorMessage: "✅ Test Passed"
-            );
-        }
-
-        [OrderedFact("Should send an invoice with custom reply markup")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
-        public async Task Should_Send_Invoice_With_Reply_Markup()
-        {
-            await BotClient.SendInvoiceAsync(
-                chatId: (int) _classFixture.PrivateChat.Id,
-                title: "Product",
-                description: "product description",
-                payload: "test payload",
-                providerToken: _classFixture.PaymentProviderToken,
-                startParameter: "start_parameter",
-                currency: "USD",
-                prices: new[] {new LabeledPrice("price", 150),},
-                replyMarkup: new InlineKeyboardMarkup(new[]
-                {
-                    new[]
-                    {
-                        InlineKeyboardButton.WithPayment("Pay this invoice"),
-                        InlineKeyboardButton.WithUrl("Repository", "https://github.com/TelegramBots/Telegram.Bot")
-                    },
-                    new[]
-                    {
-                        InlineKeyboardButton.WithCallbackData("Some other button")
-                    }
-                })
-            );
-        }
-
-        private async Task<Update> GetShippingQueryUpdate(CancellationToken cancellationToken = default)
-        {
-            Update[] updates = await _fixture.UpdateReceiver.GetUpdatesAsync(
-                cancellationToken: cancellationToken,
-                updateTypes: UpdateType.ShippingQuery);
-
-            Update update = updates.Single();
-
-            await _fixture.UpdateReceiver.DiscardNewUpdatesAsync(cancellationToken);
-
-            return update;
-        }
-
-        private async Task<Update> GetPreCheckoutQueryUpdate(
-            CancellationToken cancellationToken = default)
-        {
-            Update[] updates = await _fixture.UpdateReceiver.GetUpdatesAsync(
-                cancellationToken: cancellationToken,
-                updateTypes: UpdateType.PreCheckoutQuery);
-
-            Update update = updates.Single();
-
-            await _fixture.UpdateReceiver.DiscardNewUpdatesAsync(cancellationToken);
-
-            return update;
-        }
-
-        private async Task<Update> GetSuccessfulPaymentUpdate(
-            CancellationToken cancellationToken = default)
-        {
-            Update[] updates = await _fixture.UpdateReceiver.GetUpdatesAsync(
-                predicate: u => u.Message.Type == MessageType.SuccessfulPayment,
-                cancellationToken: cancellationToken,
-                updateTypes: UpdateType.Message);
-
-            Update update = updates.Single();
-
-            await _fixture.UpdateReceiver.DiscardNewUpdatesAsync(cancellationToken);
-
-            return update;
-        }
+        Assert.Equal(MessageType.Invoice, message.Type);
+        Assert.NotNull(invoice);
+        Assert.Equal(preliminaryInvoice.Title, invoice.Title);
+        Assert.Equal(preliminaryInvoice.Currency, invoice.Currency);
+        Assert.Equal(preliminaryInvoice.TotalAmount, invoice.TotalAmount);
+        Assert.Equal(preliminaryInvoice.Description, invoice.Description);
+        Assert.Equal(preliminaryInvoice.StartParameter, invoice.StartParameter);
     }
+
+    [OrderedFact("Should receive shipping address query and reply with shipping options")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerShippingQuery)]
+    public async Task Should_Answer_Shipping_Query_With_Ok()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithShipping(s => s
+                .WithTitle(title: "DHL Express")
+                .WithId(id: "dhl-express")
+                .WithPrice(label: "Packaging", amount: 400_000)
+                .WithPrice(label: "Shipping price", amount: 337_600))
+            .WithCurrency(currency: "USD")
+            .WithPayload("<my-payload>")
+            .WithFlexible()
+            .RequireShippingAddress()
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost()
+            .CurrencyFormat();
+
+        string instruction = FormatInstructionWithCurrency($"Click on *Pay {totalCostWithoutShippingCost:C}* and send your shipping address.");
+        await Fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        await paymentsBuilder.MakeInvoiceRequest(Fixture);
+
+        Update shippingUpdate = await GetShippingQueryUpdate();
+
+        await paymentsBuilder.MakeShippingQueryRequest(Fixture,
+            shippingQueryId: shippingUpdate.ShippingQuery!.Id
+        );
+
+        Assert.Equal(UpdateType.ShippingQuery, shippingUpdate.Type);
+        Assert.Equal("<my-payload>", shippingUpdate.ShippingQuery.InvoicePayload);
+        Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.CountryCode);
+        Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.City);
+        Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.State);
+        Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.StreetLine1);
+        Assert.NotNull(shippingUpdate.ShippingQuery.ShippingAddress.PostCode);
+    }
+
+    [OrderedFact("Should send invoice with 2 shipment options, and reply pre-checkout query with OK.")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerPreCheckoutQuery)]
+    public async Task Should_Answer_PreCheckout_Query_With_Ok_And_Shipment_Option()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithShipping(s => s
+                .WithTitle(title: "DHL Express")
+                .WithId(id: "dhl-express")
+                .WithPrice(label: "Shipping price", amount: 337_600))
+            .WithShipping(s => s
+                .WithTitle(title: "FedEx")
+                .WithId(id: "fedex")
+                .WithPrice(label: "Packaging", amount: 200_000)
+                .WithPrice(label: "Shipping price", amount: 237_600))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .WithFlexible()
+            .RequireShippingAddress()
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost()
+            .CurrencyFormat();
+
+        string instruction = FormatInstructionWithCurrency(
+            $"Click on *Pay {totalCostWithoutShippingCost:C}* and send your shipping address. Then click *Pay {totalCostWithoutShippingCost:C}* inside payment dialog using DHL option. Transaction should be completed."
+        );
+        await Fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        await paymentsBuilder.MakeInvoiceRequest(Fixture);
+
+        Update shippingUpdate = await GetShippingQueryUpdate();
+
+        await paymentsBuilder.MakeShippingQueryRequest(Fixture,
+            shippingQueryId: shippingUpdate.ShippingQuery!.Id
+        );
+
+        Update preCheckoutUpdate = await GetPreCheckoutQueryUpdate();
+        PreCheckoutQuery query = preCheckoutUpdate.PreCheckoutQuery;
+
+        await Fixture.BotClient.AnswerPreCheckoutQuery(
+            query!.Id
+        );
+
+        PreliminaryInvoice preliminaryInvoice = paymentsBuilder.GetPreliminaryInvoice();
+        long totalAmount = paymentsBuilder.GetTotalAmount();
+
+        Assert.Equal(UpdateType.PreCheckoutQuery, preCheckoutUpdate.Type);
+        Assert.NotNull(query.Id);
+        Assert.Equal("<my-payload>", query.InvoicePayload);
+        Assert.Equal(totalAmount, query.TotalAmount);
+        Assert.Equal(preliminaryInvoice.Currency, query.Currency);
+        Assert.Contains(query.From.Username, Fixture.UpdateReceiver.AllowedUsernames);
+        Assert.NotNull(query.OrderInfo);
+        Assert.Null(query.OrderInfo.PhoneNumber);
+        Assert.Null(query.OrderInfo.Name);
+        Assert.Null(query.OrderInfo.Email);
+        Assert.Equal("dhl-express", query.ShippingOptionId);
+    }
+
+    [OrderedFact("Should receive successful payment.")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerPreCheckoutQuery)]
+    public async Task Should_Receive_Successful_Payment_With_Shipment_Option()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithShipping(s => s
+                .WithTitle(title: "DHL Express")
+                .WithId(id: "dhl-express")
+                .WithPrice(label: "Packaging", amount: 400_000)
+                .WithPrice(label: "Shipping price", amount: 337_600))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .RequireEmail()
+            .RequireName()
+            .RequirePhoneNumber()
+            .WithFlexible()
+            .RequireShippingAddress()
+            .SendEmailToProvider()
+            .SendPhoneNumberToProvider()
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost()
+            .CurrencyFormat();
+
+        string instruction = FormatInstructionWithCurrency(
+            $"Click on *Pay {totalCostWithoutShippingCost:C}*, send your shipping address and confirm payment. Transaction should be completed."
+        );
+        await Fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        Message invoiceMessage = await paymentsBuilder.MakeInvoiceRequest(Fixture);
+
+        Update shippingUpdate = await GetShippingQueryUpdate();
+
+        await paymentsBuilder.MakeShippingQueryRequest(Fixture,
+            shippingQueryId: shippingUpdate.ShippingQuery!.Id
+        );
+
+        Update preCheckoutUpdate = await GetPreCheckoutQueryUpdate();
+        PreCheckoutQuery query = preCheckoutUpdate.PreCheckoutQuery;
+
+        await Fixture.BotClient.AnswerPreCheckoutQuery(
+            query!.Id
+        );
+
+        Update successfulPaymentUpdate = await GetSuccessfulPaymentUpdate();
+        SuccessfulPayment successfulPayment = successfulPaymentUpdate.Message!.SuccessfulPayment;
+        long totalAmount = paymentsBuilder.GetTotalAmount();
+
+        Assert.Equal(totalAmount, successfulPayment!.TotalAmount);
+        Assert.Equal("<my-payload>", successfulPayment.InvoicePayload);
+        Assert.NotNull(invoiceMessage.Invoice);
+        Assert.Equal(invoiceMessage.Invoice.Currency, successfulPayment.Currency);
+        Assert.Equal("dhl-express", successfulPayment.ShippingOptionId);
+        Assert.NotNull(successfulPayment.OrderInfo);
+        Assert.NotNull(successfulPayment.OrderInfo.Email);
+        Assert.NotNull(successfulPayment.OrderInfo.Name);
+        Assert.NotNull(successfulPayment.OrderInfo.PhoneNumber);
+        Assert.NotNull(successfulPayment.OrderInfo.ShippingAddress);
+        Assert.NotNull(successfulPayment.OrderInfo.ShippingAddress.City);
+        Assert.NotNull(successfulPayment.OrderInfo.ShippingAddress.CountryCode);
+        Assert.NotNull(successfulPayment.OrderInfo.ShippingAddress.PostCode);
+        Assert.NotNull(successfulPayment.OrderInfo.ShippingAddress.StreetLine1);
+        Assert.NotNull(successfulPayment.OrderInfo.ShippingAddress.StreetLine2);
+    }
+
+    [OrderedFact("Should receive successful payment with a tip")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerPreCheckoutQuery)]
+    public async Task Should_Receive_Successful_Payment_With_A_Tip()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Three tasty donuts")
+                .WithDescription(description: "Donuts with special glaze")
+                .WithProductPrice(label: "Donut with chocolate glaze", amount: 550)
+                .WithProductPrice(label: "Donut with vanilla glaze", amount: 500)
+                .WithProductPrice(label: "Donut with glaze", amount: 500)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2017/11/22/00/18/donuts-2969490_960_720.jpg",
+                    width: 960,
+                    height: 640
+                ))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .WithSuggestedTips(100, 150, 200)
+            .WithMaxTip(maxTipAmount: 300)
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost()
+            .CurrencyFormat();
+
+        string instruction = FormatInstructionWithCurrency(
+            $"Click on *Pay {totalCostWithoutShippingCost:C}*, select a tip from given options and confirm payment. Transaction should be completed."
+        );
+        await Fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        Message invoiceMessage = await paymentsBuilder.MakeInvoiceRequest(Fixture);
+        Update preCheckoutUpdate = await GetPreCheckoutQueryUpdate();
+        PreCheckoutQuery query = preCheckoutUpdate.PreCheckoutQuery;
+
+        await Fixture.BotClient.AnswerPreCheckoutQuery(
+            query!.Id
+        );
+
+        Update successfulPaymentUpdate = await GetSuccessfulPaymentUpdate();
+        SuccessfulPayment successfulPayment = successfulPaymentUpdate.Message!.SuccessfulPayment;
+        long totalAmount = paymentsBuilder.GetTotalAmount();
+
+        int[] suggestedTips = [100, 150, 200];
+        long[] totalAmountWithTip = [.. suggestedTips.Select(_ => _ + totalAmount)];
+
+        Assert.Contains(totalAmountWithTip, _ => _ == successfulPayment!.TotalAmount);
+        Assert.Equal("<my-payload>", successfulPayment!.InvoicePayload);
+        Assert.NotNull(invoiceMessage.Invoice);
+        Assert.Equal(invoiceMessage.Invoice.Currency, successfulPayment.Currency);
+    }
+
+    [OrderedFact("Should receive shipping address query and reply with an error")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerShippingQuery)]
+    public async Task Should_Answer_Shipping_Query_With_Error()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithShipping(s => s
+                .WithTitle(title: "DHL Express")
+                .WithId(id: "dhl-express")
+                .WithPrice(label: "Packaging", amount: 400_000)
+                .WithPrice(label: "Shipping price", amount: 337_600))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .WithFlexible()
+            .RequireShippingAddress()
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost()
+            .CurrencyFormat();
+
+        string instruction = FormatInstructionWithCurrency(
+            $"Click on *Pay {totalCostWithoutShippingCost:C}* and send your shipping address. You will receive an error. Close payment window after that."
+        );
+        await Fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        await paymentsBuilder.MakeInvoiceRequest(Fixture);
+
+        Update shippingUpdate = await GetShippingQueryUpdate();
+
+        await paymentsBuilder.MakeShippingQueryRequest(Fixture,
+            shippingQueryId: shippingUpdate.ShippingQuery!.Id,
+            errorMessage: "Sorry, but we don't ship to your contry."
+        );
+    }
+
+    [OrderedFact("Should send invoice for no shipment option, and reply pre-checkout query with an error.")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.AnswerPreCheckoutQuery)]
+    public async Task Should_Answer_PreCheckout_Query_With_Error_For_No_Shipment_Option()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost()
+            .CurrencyFormat();
+
+        string instruction = FormatInstructionWithCurrency(
+            $"Click on *Pay {totalCostWithoutShippingCost:C}* and confirm payment. You should receive an error. Close payment window after that."
+        );
+        await Fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        await paymentsBuilder.MakeInvoiceRequest(Fixture);
+
+        Update preCheckoutUpdate = await GetPreCheckoutQueryUpdate();
+        PreCheckoutQuery query = preCheckoutUpdate.PreCheckoutQuery;
+
+        await Fixture.BotClient.AnswerPreCheckoutQuery(
+            preCheckoutQueryId: query!.Id,
+            errorMessage: "Sorry, we couldn't process the transaction. Please, contact our support."
+        );
+    }
+
+    [OrderedFact("Should throw exception when sending invoice with invalid provider data")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    public async Task Should_Throw_When_Send_Invoice_Invalid_Provider_Data()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .WithProviderData("INVALID-JSON")
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        ApiRequestException exception = await Assert.ThrowsAsync<ApiRequestException>(
+            async () => await paymentsBuilder.MakeInvoiceRequest(Fixture)
+        );
+
+        Assert.Equal(400, exception.ErrorCode);
+        Assert.Equal("Bad Request: DATA_JSON_INVALID", exception.Message);
+    }
+
+    [OrderedFact("Should throw exception when answering shipping query with duplicate shipping Id")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    public async Task Should_Throw_When_Answer_Shipping_Query_With_Duplicate_Shipping_Id()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithShipping(s => s
+                .WithTitle(title: "DHL Express")
+                .WithId(id: "dhl-express")
+                .WithPrice(label: "Packaging", amount: 400_000)
+                .WithPrice(label: "Shipping price", amount: 337_600))
+            .WithShipping(s => s
+                .WithTitle(title: "DHL Express (Duplicate)")
+                .WithId(id: "dhl-express")
+                .WithPrice(label: "Packaging", amount: 400_000)
+                .WithPrice(label: "Shipping price", amount: 337_600))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .WithFlexible()
+            .RequireShippingAddress()
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost()
+            .CurrencyFormat();
+
+        string instruction = FormatInstructionWithCurrency(
+            $"Click on *Pay {totalCostWithoutShippingCost:C}*, send your shipping address. You should receive an error."
+        );
+        await Fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        await paymentsBuilder.MakeInvoiceRequest(Fixture);
+
+        Update shippingUpdate = await GetShippingQueryUpdate();
+
+        ApiRequestException exception = await Assert.ThrowsAsync<ApiRequestException>(
+            async () => await paymentsBuilder.MakeShippingQueryRequest(Fixture,
+            shippingQueryId: shippingUpdate.ShippingQuery!.Id
+        ));
+
+        Assert.Equal(400, exception.ErrorCode);
+        Assert.Equal("Bad Request: SHIPPING_ID_DUPLICATE", exception.Message);
+
+        await Fixture.BotClient.AnswerShippingQuery(
+            shippingQueryId: shippingUpdate.ShippingQuery.Id,
+            errorMessage: "✅ Test Passed"
+        );
+    }
+
+    [OrderedFact("Should send an invoice with custom reply markup")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    public async Task Should_Send_Invoice_With_Reply_Markup()
+    {
+        InlineKeyboardMarkup replyMarkup = new(
+        [
+            [
+                InlineKeyboardButton.WithPay("Pay this invoice"),
+                InlineKeyboardButton.WithUrl("Repository", "https://github.com/TelegramBots/Telegram.Bot")
+            ],
+            [InlineKeyboardButton.WithCallbackData("Some other button")]
+        ]);
+
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 500_000)
+                .WithProductPrice(label: "Wooden frame", amount: 100_000)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithCurrency("USD")
+            .WithPayload("<my-payload>")
+            .WithReplyMarkup(replyMarkup)
+            .WithPaymentProviderToken(classFixture.PaymentProviderToken)
+            .ToChat(classFixture.PrivateChat.Id);
+
+        await paymentsBuilder.MakeInvoiceRequest(Fixture);
+    }
+
+    [OrderedFact("Should send a Telegram Stars invoice")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendInvoice)]
+    public async Task Should_Send_XTR_Invoice()
+    {
+        PaymentsBuilder paymentsBuilder = new PaymentsBuilder()
+            .WithProduct(p => p
+                .WithTitle(title: "Reproduction of \"La nascita di Venere\"")
+                .WithDescription(description:
+                    "Sandro Botticelli’s the Birth of Venus depicts the goddess Venus arriving at the shore" +
+                    " after her birth, when she had emerged from the sea fully-grown ")
+                .WithProductPrice(label: "Price of the painting", amount: 100)
+                .WithPhoto(
+                    url: "https://cdn.pixabay.com/photo/2012/10/26/03/16/painting-63186_1280.jpg",
+                    width: 1280,
+                    height: 820
+                ))
+            .WithCurrency("XTR")
+            .WithPayload("<my-payload>")
+            .WithPaymentProviderToken("")
+            .ToChat(classFixture.PrivateChat.Id);
+
+        double totalCostWithoutShippingCost = paymentsBuilder
+            .GetTotalAmountWithoutShippingCost();
+
+        //string instruction = FormatInstructionWithCurrency(
+        //    $"Click on *Pay ⭐️ {totalCostWithoutShippingCost}* and confirm payment. Transaction should be completed."
+        //);
+        //await fixture.SendTestInstructionsAsync(instruction, chatId: classFixture.PrivateChat.Id);
+
+        Message invoiceMessage = await paymentsBuilder.MakeInvoiceRequest(Fixture);
+        Invoice invoice = invoiceMessage.Invoice;
+
+        Assert.Equal(MessageType.Invoice, invoiceMessage.Type);
+        Assert.NotNull(invoice);
+        Assert.Equal("XTR", invoice.Currency);
+        Assert.Equal(totalCostWithoutShippingCost, invoice.TotalAmount);
+
+        //Update preCheckoutUpdate = await GetPreCheckoutQueryUpdate();
+        //PreCheckoutQuery query = preCheckoutUpdate.PreCheckoutQuery;
+
+        //await fixture.BotClient.AnswerPreCheckoutQuery(
+        //    query!.Id
+        //);
+
+        //Update successfulPaymentUpdate = await GetSuccessfulPaymentUpdate();
+        //SuccessfulPayment successfulPayment = successfulPaymentUpdate.Message!.SuccessfulPayment;
+        //int totalAmount = paymentsBuilder.GetTotalAmount();
+
+        //Assert.Equal(invoice.Currency, successfulPayment.Currency);
+        //Assert.Equal(UpdateType.PreCheckoutQuery, preCheckoutUpdate.Type);
+        //Assert.NotNull(query.Id);
+        //Assert.Equal("<my-payload>", query.InvoicePayload);
+        //Assert.Equal(totalAmount, query.TotalAmount);
+        //Assert.Equal("XTR", query.Currency);
+        //Assert.Contains(query.From.Username, fixture.UpdateReceiver.AllowedUsernames);
+        //Assert.NotNull(query.OrderInfo);
+        //Assert.Null(query.OrderInfo.PhoneNumber);
+        //Assert.Null(query.OrderInfo.Name);
+        //Assert.Null(query.OrderInfo.Email);
+        //Assert.Equal("dhl-express", query.ShippingOptionId);
+    }
+
+    async Task<Update> GetShippingQueryUpdate(CancellationToken cancellationToken = default)
+    {
+        Update[] updates = await Fixture.UpdateReceiver.GetUpdatesAsync(
+            cancellationToken: cancellationToken,
+            updateTypes: UpdateType.ShippingQuery
+        );
+
+        Update update = updates.Single();
+
+        await Fixture.UpdateReceiver.DiscardNewUpdatesAsync(cancellationToken);
+
+        return update;
+    }
+
+    async Task<Update> GetPreCheckoutQueryUpdate(CancellationToken cancellationToken = default)
+    {
+        Update[] updates = await Fixture.UpdateReceiver.GetUpdatesAsync(
+            cancellationToken: cancellationToken,
+            updateTypes: UpdateType.PreCheckoutQuery
+        );
+
+        Update update = updates.Single();
+
+        await Fixture.UpdateReceiver.DiscardNewUpdatesAsync(cancellationToken);
+
+        return update;
+    }
+
+    async Task<Update> GetSuccessfulPaymentUpdate(CancellationToken cancellationToken = default)
+    {
+        Update[] updates = await Fixture.UpdateReceiver.GetUpdatesAsync(
+            predicate: u => u.Message?.Type == MessageType.SuccessfulPayment,
+            cancellationToken: cancellationToken,
+            updateTypes: UpdateType.Message
+        );
+
+        Update update = updates.Single();
+
+        await Fixture.UpdateReceiver.DiscardNewUpdatesAsync(cancellationToken);
+
+        return update;
+    }
+
+    public async Task InitializeAsync() => await Fixture.UpdateReceiver.DiscardNewUpdatesAsync();
+    public Task DisposeAsync() => Task.CompletedTask;
+
+    public static string FormatInstructionWithCurrency(FormattableString instruction) =>
+        instruction.ToString(CultureInfo.GetCultureInfo("en-US"));
+}
+
+public static class Extensions
+{
+    // ReSharper disable once PossibleLossOfFraction
+    public static double CurrencyFormat(this long amount) => amount * 0.01;
 }

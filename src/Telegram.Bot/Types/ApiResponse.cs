@@ -1,43 +1,29 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+namespace Telegram.Bot.Exceptions
+{
+    /// <summary>Represents a Bot API response</summary>
+    public class ApiResponse
+    {
+        /// <summary>Gets a value indicating whether the request was successful.</summary>
+        public bool Ok { get; init; }
+
+        /// <summary>Gets the error message.</summary>
+        public string? Description { get; init; }
+
+        /// <summary>Gets the error code.</summary>
+        public int ErrorCode { get; init; }
+
+        /// <summary>Contains information about why a request was unsuccessful.</summary>
+        public ResponseParameters? Parameters { get; init; }
+    }
+}
 
 namespace Telegram.Bot.Types
 {
-    /// <summary>
-    /// Represents bot API response
-    /// </summary>
+    /// <summary>Represents a successful Bot API response with result</summary>
     /// <typeparam name="TResult">Expected type of operation result</typeparam>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class ApiResponse<TResult>
+    public class ApiResponse<TResult> : Exceptions.ApiResponse
     {
-        /// <summary>
-        /// Gets a value indicating whether the request was successful.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public bool Ok { get; set; }
-
-        /// <summary>
-        /// Gets the result object.
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public TResult Result { get; set; }
-
-        /// <summary>
-        /// Gets the error message.
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string Description { get; set; }
-
-        /// <summary>
-        /// Gets the error code.
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public int ErrorCode { get; set; }
-
-        /// <summary>
-        /// Contains information about why a request was unsuccessful.
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public ResponseParameters Parameters { get; set; }
+        /// <summary>Gets the result object.</summary>
+        public TResult? Result { get; init; }
     }
 }

@@ -1,66 +1,100 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Telegram.Bot.Tests.Integ.Framework;
+using Telegram.Bot.Tests.Integ.Framework.Fixtures;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.ReplyMarkups;
 
-namespace Telegram.Bot.Tests.Integ.Stickers
+namespace Telegram.Bot.Tests.Integ.Stickers;
+
+public class StickersTestsFixture(TestsFixture testsFixture) : AsyncLifetimeFixture
 {
-    public class StickersTestsFixture
+    protected override IEnumerable<Func<Task>> Initializers() =>
+    [
+        async () =>
+        {
+            OwnerUserId = await GetStickerOwnerIdAsync(
+                testsFixture,
+                Constants.TestCollections.Stickers
+            );
+        }
+    ];
+
+    //Basic information
+    public string TestStickerSetTitle => "Test sticker set";
+
+    public long OwnerUserId { get; private set; }
+
+    //Emojis
+    public IEnumerable<string> FirstEmojis { get; } = ["😊"];
+
+    public IEnumerable<string> SecondEmojis { get; } = ["🥰", "😘"];
+
+    public IEnumerable<string> ThirdEmojis { get; } = ["😎"];
+
+    //Regular stickers
+    public string TestStaticRegularStickerSetName { get; } = $"test_static_regular_set_by_{testsFixture.BotUser.Username}";
+
+    public TGFile TestUploadedStaticStickerFile { get; set; }
+
+    public StickerSet TestStaticRegularStickerSet { get; set; }
+
+    public string TestAnimatedRegularStickerSetName { get; } = $"test_animated_regular_set_by_{testsFixture.BotUser.Username}";
+
+    public TGFile TestUploadedAnimatedStickerFile { get; set; }
+
+    public StickerSet TestAnimatedRegularStickerSet { get; set; }
+
+    public string TestVideoRegularStickerSetName { get; } = $"test_video_regular_set_by_{testsFixture.BotUser.Username}";
+
+    public TGFile TestUploadedVideoStickerFile { get; set; }
+
+    public StickerSet TestVideoRegularStickerSet { get; set; }
+
+    //Mask stickers
+    public string TestStaticMaskStickerSetName { get; } = $"test_static_mask_set_by_{testsFixture.BotUser.Username}";
+
+    public StickerSet TestStaticMaskStickerSet { get; set; }
+
+    //Custom emoji stickers
+    public string TestStaticCustomEmojiStickerSetName { get; } = $"test_static_c_emoji_set_by_{testsFixture.BotUser.Username}";
+
+    public StickerSet TestStaticCustomEmojiStickerSet { get; set; }
+
+    static async Task<long> GetStickerOwnerIdAsync(TestsFixture testsFixture, string collectionName)
     {
-        public StickerSet EvilMindsStickerSet { get; set; }
+        long ownerId;
 
-        public IEnumerable<File> UploadedStickers { get; set; }
-
-        public string TestStickerSetName { get; }
-
-        public StickerSet TestStickerSet { get; set; }
-
-        public int OwnerUserId { get; }
-
-        public StickersTestsFixture(TestsFixture testsFixture)
+        if (testsFixture.Configuration.StickerOwnerUserId == default)
         {
-            TestStickerSetName = $"test_set_by_{testsFixture.BotUser.Username}";
-            OwnerUserId = GetStickerOwnerIdAsync(testsFixture, Constants.TestCollections.Stickers)
-                .GetAwaiter().GetResult();
+            await testsFixture.UpdateReceiver.DiscardNewUpdatesAsync();
+
+            Message notificationMessage = await testsFixture.SendTestCollectionNotificationAsync(collectionName,
+                $"\nNo value is set for `{nameof(TestConfiguration.StickerOwnerUserId)}` " +
+                "in test settings.\n\n"
+            );
+
+            const string cqData = "sticker_tests:owner";
+            Message cqMessage = await testsFixture.BotClient.SendMessage(
+                chatId: testsFixture.SupergroupChat,
+                text: $"{testsFixture.UpdateReceiver.GetTesters()}\nUse the following button to become Sticker Set Owner",
+                replyParameters: new() { MessageId = notificationMessage.Id },
+                replyMarkup: new InlineKeyboardMarkup(
+                    InlineKeyboardButton.WithCallbackData("I am the Owner!", cqData)
+                )
+            );
+
+            Update cqUpdate = await testsFixture.UpdateReceiver
+                .GetCallbackQueryUpdateAsync(cqMessage.Id, cqData);
+
+            ownerId = cqUpdate.CallbackQuery!.From.Id;
+        }
+        else
+        {
+            ownerId = testsFixture.Configuration.StickerOwnerUserId.Value;
         }
 
-        private static async Task<int> GetStickerOwnerIdAsync(TestsFixture testsFixture, string collectionName)
-        {
-            int ownerId;
-
-            if (ConfigurationProvider.TestConfigurations.StickerOwnerUserId == default)
-            {
-                await testsFixture.UpdateReceiver.DiscardNewUpdatesAsync();
-
-                Message notifMessage = await testsFixture.SendTestCollectionNotificationAsync(collectionName,
-                    $"\nNo value is set for `{nameof(ConfigurationProvider.TestConfigurations.StickerOwnerUserId)}` " +
-                    "in test settings.\n\n" +
-                    ""
-                );
-
-                const string cqData = "sticker_tests:owner";
-                Message cqMessage = await testsFixture.BotClient.SendTextMessageAsync(
-                    testsFixture.SupergroupChat,
-                    testsFixture.UpdateReceiver.GetTesters() +
-                    "\nUse the following button to become Sticker Set Owner",
-                    replyToMessageId: notifMessage.MessageId,
-                    replyMarkup: new InlineKeyboardMarkup(
-                        InlineKeyboardButton.WithCallbackData("I am the Owner!", cqData)
-                    )
-                );
-
-                Update cqUpdate = await testsFixture.UpdateReceiver
-                    .GetCallbackQueryUpdateAsync(cqMessage.MessageId, cqData);
-
-                ownerId = cqUpdate.CallbackQuery.From.Id;
-            }
-            else
-            {
-                ownerId = ConfigurationProvider.TestConfigurations.StickerOwnerUserId.Value;
-            }
-
-            return ownerId;
-        }
+        return ownerId;
     }
 }

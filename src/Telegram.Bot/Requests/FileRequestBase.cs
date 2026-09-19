@@ -1,86 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using Newtonsoft.Json.Serialization;
-using Telegram.Bot.Helpers;
-using Telegram.Bot.Types.InputFiles;
+using System.Text;
 
-namespace Telegram.Bot.Requests
+namespace Telegram.Bot.Requests;
+
+/// <summary>Represents an API request with a file</summary>
+/// <typeparam name="TResponse">Type of result expected in result</typeparam>
+/// <param name="methodName">Bot API method</param>
+public abstract class FileRequestBase<TResponse>(string methodName) : RequestBase<TResponse>(methodName)
 {
-    /// <summary>
-    /// Represents an API request with a file
-    /// </summary>
-    /// <typeparam name="TResponse">Type of result expected in result</typeparam>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public abstract class FileRequestBase<TResponse> : RequestBase<TResponse>
+    private static readonly Encoding Latin1 = Encoding.GetEncoding(28591);
+
+    /// <inheritdoc/>
+    public override HttpContent? ToHttpContent()
     {
-        /// <summary>
-        /// Initializes an instance of request
-        /// </summary>
-        /// <param name="methodName">Bot API method</param>
-        protected FileRequestBase(string methodName)
-            : base(methodName)
-        { }
+        InputFileConverter.Attachments.Value = null;
+        var utf8Json = JsonSerializer.SerializeToUtf8Bytes(this, GetType(), JsonBotAPI.Options);
+        var attachments = InputFileConverter.Attachments.Value;
+        if (attachments == null)
+            return new ByteArrayContent(utf8Json) { Headers = { ContentType = new("application/json") { CharSet = "utf-8" } } };
 
-        /// <summary>
-        /// Initializes an instance of request
-        /// </summary>
-        /// <param name="methodName">Bot API method</param>
-        /// <param name="method">HTTP method to use</param>
-        protected FileRequestBase(string methodName, HttpMethod method)
-            : base(methodName, method)
-        { }
-
-        /// <summary>
-        /// ToDo
-        /// </summary>
-        /// <param name="fileParameterName"></param>
-        /// <param name="inputFile"></param>
-        /// <returns></returns>
-        protected MultipartFormDataContent ToMultipartFormDataContent(string fileParameterName, InputFileStream inputFile)
+        var multipartContent = new MultipartFormDataContent();
+        var firstLevel = JsonDocument.Parse(utf8Json).RootElement.EnumerateObject();
+        foreach (var prop in firstLevel)
+            multipartContent.Add(new StringContent(prop.Value.ToString()), prop.Name);
+        for (int i = 0; i < attachments.Count; i++)
         {
-            var multipartContent = GenerateMultipartFormDataContent(fileParameterName);
-
-            multipartContent.AddStreamContent(inputFile.Content, fileParameterName, inputFile.FileName);
-
-            return multipartContent;
-        }
-
-        /// <summary>
-        /// ToDo
-        /// </summary>
-        /// <param name="exceptPropertyNames"></param>
-        /// <returns></returns>
-        protected MultipartFormDataContent GenerateMultipartFormDataContent(params string[] exceptPropertyNames)
-        {
-            var multipartContent = new MultipartFormDataContent(Guid.NewGuid().ToString() + DateTime.UtcNow.Ticks);
-
-            var stringContents = JObject.FromObject(this)
-                .Properties()
-                .Where(prop => exceptPropertyNames?.Contains(prop.Name) == false)
-                .Select(prop => new
+            var inputFile = attachments[i];
+            string fileName = inputFile.FileName ?? "file";
+            string contentDisposition = FormattableString.Invariant($"form-data; name=\"{i}\"; filename=\"{fileName}\"");
+            contentDisposition = Latin1.GetString(Encoding.UTF8.GetBytes(contentDisposition));
+#pragma warning disable CA2000
+            var mediaPartContent = new StreamContent(inputFile.Content)
+            {
+                Headers =
                 {
-                    prop.Name,
-                    Content = new StringContent(prop.Value.ToString())
-                });
-            foreach (var strContent in stringContents)
-                multipartContent.Add(strContent.Content, strContent.Name);
-
-            return multipartContent;
+                    {"Content-Type", "application/octet-stream"},
+                    {"Content-Disposition", contentDisposition},
+                },
+            };
+#pragma warning restore CA2000
+            multipartContent.Add(mediaPartContent);
         }
-
-        /// <summary>
-        /// Creates MultipartFormData request
-        /// </summary>
-        /// <param name="parameters">Request parameters</param>
-        /// <returns>Content of HTTP request</returns>
-        [Obsolete]
-        protected HttpContent GetMultipartContent(IDictionary<string, object> parameters)
-        {
-            throw new NotImplementedException();
-        }
+        return multipartContent;
     }
 }

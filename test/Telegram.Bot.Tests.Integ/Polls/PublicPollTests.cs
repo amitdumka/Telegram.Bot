@@ -1,113 +1,102 @@
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 using Telegram.Bot.Tests.Integ.Framework;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 using Xunit;
 
-namespace Telegram.Bot.Tests.Integ.Polls
+namespace Telegram.Bot.Tests.Integ.Polls;
+
+[Collection(Constants.TestCollections.NativePolls)]
+[Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
+[TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
+public class PublicPollTests(PublicPollTestsFixture classFixture)
+    : TestClass(classFixture.TestsFixture), IClassFixture<PublicPollTestsFixture>
 {
-    [Collection(Constants.TestCollections.NativePolls)]
-    [Trait(Constants.CategoryTraitName, Constants.InteractiveCategoryValue)]
-    [TestCaseOrderer(Constants.TestCaseOrderer, Constants.AssemblyName)]
-    public class PublicPollTests : IClassFixture<PublicPollTestsFixture>
+    [OrderedFact(
+        "Should send public poll with multiple answers")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendPoll)]
+    public async Task Should_Send_Non_Anonymous_Poll_With_Multiple_Answers()
     {
-        private readonly TestsFixture _fixture;
-        private readonly PublicPollTestsFixture _classFixture;
+        Message message = await Fixture.BotClient.SendPoll(
+            chatId: Fixture.SupergroupChat,
+            question: "Pick your team",
+            options: ["Aragorn", "Galadriel", "Frodo"],
+            isAnonymous: false,
+            type: PollType.Regular,
+            allowsMultipleAnswers: true
+        );
 
-        private ITelegramBotClient BotClient => _fixture.BotClient;
+        Assert.Equal(MessageType.Poll, message.Type);
+        Assert.NotNull(message.Poll);
+        Assert.NotEmpty(message.Poll.Id);
+        Assert.False(message.Poll.IsClosed);
+        Assert.False(message.Poll.IsAnonymous);
+        Assert.Equal(PollType.Regular, message.Poll.Type);
+        Assert.True(message.Poll.AllowsMultipleAnswers);
+        Assert.Null(message.Poll.CorrectOptionIds);
+        Assert.Null(message.Poll.OpenPeriod);
+        Assert.Null(message.Poll.CloseDate);
 
-        public PublicPollTests(TestsFixture fixture, PublicPollTestsFixture classFixture)
-        {
-            _fixture = fixture;
-            _classFixture = classFixture;
-        }
+        Assert.Equal("Pick your team", message.Poll.Question);
+        Assert.Equal(3, message.Poll.Options.Length);
+        Assert.Equal("Aragorn", message.Poll.Options[0].Text);
+        Assert.Equal("Galadriel", message.Poll.Options[1].Text);
+        Assert.Equal("Frodo", message.Poll.Options[2].Text);
+        Assert.All(message.Poll.Options, option => Assert.Equal(0, option.VoterCount));
 
-        [OrderedFact(
-            "Should send public poll with multiple answers",
-            Skip = "Poll tests fail too often for unknown reasons")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.SendPoll)]
-        public async Task Should_Send_Non_Anonymous_Poll_With_Multiple_Answers()
-        {
-            Message message = await _fixture.BotClient.SendPollAsync(
-                chatId: _fixture.SupergroupChat,
-                question: "Pick your team",
-                options: new [] { "Aragorn", "Galadriel", "Frodo" },
-                isAnonymous: false,
-                type: PollType.Regular,
-                allowsMultipleAnswers: true
-            );
+        classFixture.OriginalPollMessage = message;
+    }
 
-            Assert.Equal(MessageType.Poll, message.Type);
-            Assert.NotEmpty(message.Poll.Id);
-            Assert.False(message.Poll.IsClosed);
-            Assert.False(message.Poll.IsAnonymous);
-            Assert.Equal("regular", message.Poll.Type);
-            Assert.True(message.Poll.AllowsMultipleAnswers);
-            Assert.Null(message.Poll.CorrectOptionId);
+    [OrderedFact(
+        "Should receive a poll answer update")]
+    public async Task Should_Receive_Poll_Answer_Update()
+    {
+        await Fixture.SendTestInstructionsAsync(
+            "🗳 Vote for more than one option on the poll above 👆"
+        );
 
-            Assert.Equal("Pick your team", message.Poll.Question);
-            Assert.Equal(3, message.Poll.Options.Length);
-            Assert.Equal("Aragorn", message.Poll.Options[0].Text);
-            Assert.Equal("Galadriel", message.Poll.Options[1].Text);
-            Assert.Equal("Frodo", message.Poll.Options[2].Text);
-            Assert.All(message.Poll.Options, option => Assert.Equal(0, option.VoterCount));
+        Update pollAnswerUpdate = await Fixture.UpdateReceiver.GetUpdateAsync(
+            update => update.PollAnswer!.OptionIds.Length > 1,
+            updateTypes: UpdateType.PollAnswer
+        );
 
-            _classFixture.OriginalPollMessage = message;
-        }
+        Poll poll = classFixture.OriginalPollMessage.Poll;
+        PollAnswer pollAnswer = pollAnswerUpdate.PollAnswer;
 
-        [OrderedFact(
-            "Should receive a poll answer update",
-            Skip = "Poll tests fail too often for unknown reasons")]
-        public async Task Should_Receive_Poll_Answer_Update()
-        {
-            await _fixture.SendTestInstructionsAsync(
-                "🗳 Vote for more than one option on the poll above 👆"
-            );
+        Assert.NotNull(pollAnswer);
+        Assert.Equal(poll!.Id, pollAnswer.PollId);
+        Assert.NotNull(pollAnswer.User);
+        Assert.All(
+            pollAnswer.OptionIds,
+            optionId => Assert.True(optionId < poll.Options.Length)
+        );
 
-            Update pollAnswerUpdate = (await _fixture.UpdateReceiver.GetUpdatesAsync(
-                update => update.PollAnswer.OptionIds.Length > 1,
-                updateTypes: UpdateType.PollAnswer
-            )).First();
+        classFixture.PollAnswer = pollAnswer;
+    }
 
-            Poll poll = _classFixture.OriginalPollMessage.Poll;
-            PollAnswer pollAnswer = pollAnswerUpdate.PollAnswer;
+    [OrderedFact(
+        "Should stop non-anonymous the poll")]
+    [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.StopPoll)]
+    public async Task Should_Stop_Non_Anonymous_Poll()
+    {
+        // don't close poll immediately, without a delay the resulting poll object
+        // doesn't match up with the previously received poll answer
+        await Task.Delay(TimeSpan.FromSeconds(5));
 
-            Assert.Equal(poll.Id, pollAnswer.PollId);
-            Assert.NotNull(pollAnswer.User);
-            Assert.All(
-                pollAnswer.OptionIds,
-                optionId => Assert.True(optionId < poll.Options.Length)
-            );
+        Poll closedPoll = await BotClient.StopPoll(
+            chatId: classFixture.OriginalPollMessage.Chat,
+            messageId: classFixture.OriginalPollMessage.Id
+        );
 
-            _classFixture.PollAnswer = pollAnswer;
-        }
+        Assert.Equal(classFixture.OriginalPollMessage.Poll!.Id, closedPoll.Id);
+        Assert.True(closedPoll.IsClosed);
 
-        [OrderedFact(
-            "Should stop non-anonymous the poll",
-            Skip = "Poll tests fail too often for unknown reasons")]
-        [Trait(Constants.MethodTraitName, Constants.TelegramBotApiMethods.StopPoll)]
-        public async Task Should_Stop_Non_Anonymous_Poll()
-        {
-            // don't close poll immediately, without a delay the resulting poll object
-            // doesn't match up with the previously received poll answer
-            await Task.Delay(TimeSpan.FromSeconds(5));
+        PollAnswer pollAnswer = classFixture.PollAnswer;
 
-            Poll closedPoll = await BotClient.StopPollAsync(
-                chatId: _classFixture.OriginalPollMessage.Chat,
-                messageId: _classFixture.OriginalPollMessage.MessageId
-            );
-
-            Assert.Equal(_classFixture.OriginalPollMessage.Poll.Id, closedPoll.Id);
-            Assert.True(closedPoll.IsClosed);
-
-            PollAnswer pollAnswer = _classFixture.PollAnswer;
-
-            Assert.All(
-                pollAnswer.OptionIds,
-                optionId => Assert.True(closedPoll.Options[optionId].VoterCount > 0)
-            );
-        }
+        Assert.All(
+            pollAnswer.OptionIds,
+            optionId => Assert.True(closedPoll.Options[optionId].VoterCount > 0)
+        );
     }
 }

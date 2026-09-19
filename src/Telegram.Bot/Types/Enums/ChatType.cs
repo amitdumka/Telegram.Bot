@@ -1,32 +1,17 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
+namespace Telegram.Bot.Types.Enums;
 
-namespace Telegram.Bot.Types.Enums
+/// <summary>Type of the <see cref="Chat"/>, from which the inline query was sent</summary>
+[JsonConverter(typeof(EnumConverter<ChatType>))]
+public enum ChatType
 {
-    /// <summary>
-    /// Type of a <see cref="Chat"/>
-    /// </summary>
-    [JsonConverter(typeof(StringEnumConverter), true)]
-    public enum ChatType
-    {
-        /// <summary>
-        /// Normal one to one <see cref="Chat"/>
-        /// </summary>
-        Private,
-
-        /// <summary>
-        /// Normal groupchat
-        /// </summary>
-        Group,
-
-        /// <summary>
-        /// A channel
-        /// </summary>
-        Channel,
-
-        /// <summary>
-        /// A supergroup
-        /// </summary>
-        Supergroup
-    }
+    /// <summary>Normal one-to-one chat with a user or bot</summary>
+    Private = 1,
+    /// <summary>Normal group chat</summary>
+    Group,
+    /// <summary>A channel</summary>
+    Channel,
+    /// <summary>A supergroup</summary>
+    Supergroup,
+    /// <summary>Value possible only in <see cref="InlineQuery.ChatType"/>: private chat with the inline query sender</summary>
+    Sender,
 }

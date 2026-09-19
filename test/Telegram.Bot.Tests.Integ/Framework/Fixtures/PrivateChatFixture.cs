@@ -2,51 +2,48 @@ using System.Threading.Tasks;
 using Telegram.Bot.Types;
 using Telegram.Bot.Types.Enums;
 
-namespace Telegram.Bot.Tests.Integ.Framework.Fixtures
+namespace Telegram.Bot.Tests.Integ.Framework.Fixtures;
+
+public class PrivateChatFixture : AsyncLifetimeFixture
 {
-    public class PrivateChatFixture
+    public ChatFullInfo PrivateChat { get; private set; }
+
+    public PrivateChatFixture(TestsFixture testsFixture, string collectionName)
     {
-        public Chat PrivateChat { get; }
-
-        private readonly TestsFixture _testsFixture;
-
-        public PrivateChatFixture(TestsFixture testsFixture, string collectionName)
-        {
-            _testsFixture = testsFixture;
-
-            if (_testsFixture.PrivateChat == null)
+        AddInitializer(
+            async () =>
             {
-                _testsFixture.PrivateChat = GetChat(collectionName).GetAwaiter().GetResult();
-            }
-            PrivateChat = _testsFixture.PrivateChat;
+                testsFixture.PrivateChat ??= await GetChat(testsFixture, collectionName);
+                PrivateChat = testsFixture.PrivateChat;
 
-            _testsFixture.SendTestCollectionNotificationAsync(
-                collectionName,
-                $"Tests will be executed in chat with @{PrivateChat.Username.Replace("_", @"\_")}"
-            ).GetAwaiter().GetResult();
-        }
-
-        private async Task<Chat> GetChat(string collectionName)
-        {
-            Chat chat;
-            long? chatId = ConfigurationProvider.TestConfigurations.TesterPrivateChatId;
-            if (chatId.HasValue)
-            {
-                chat = await _testsFixture.BotClient.GetChatAsync(chatId);
-            }
-            else
-            {
-                await _testsFixture.UpdateReceiver.DiscardNewUpdatesAsync();
-
-                string botUserName = _testsFixture.BotUser.Username;
-                await _testsFixture.SendTestCollectionNotificationAsync(collectionName,
-                    $"No value is set for `{nameof(ConfigurationProvider.TestConfigurations.TesterPrivateChatId)}` in test " +
-                    $"settings. Tester should send /test command in private chat with @{botUserName.Replace("_", @"\_")}."
+                await testsFixture.SendTestCollectionNotificationAsync(
+                    collectionName,
+                    $"Tests will be executed in chat with @{PrivateChat.GetSafeUsername()}"
                 );
-
-                chat = await _testsFixture.GetChatFromTesterAsync(ChatType.Private);
             }
-            return chat;
+        );
+    }
+
+    static async Task<ChatFullInfo> GetChat(TestsFixture testsFixture, string collectionName)
+    {
+        ChatFullInfo chat;
+        long? chatId = testsFixture.Configuration.TesterPrivateChatId;
+        if (chatId.HasValue)
+        {
+            chat = await testsFixture.BotClient.GetChat(chatId);
         }
+        else
+        {
+            await testsFixture.UpdateReceiver.DiscardNewUpdatesAsync();
+
+            string botUsername = testsFixture.BotUser.GetSafeUsername();
+            await testsFixture.SendTestCollectionNotificationAsync(collectionName,
+                $"No value is set for `{nameof(TestConfiguration.TesterPrivateChatId)}` in test " +
+                $"settings. Tester should send /test command in private chat with @{botUsername}."
+            );
+
+            chat = await testsFixture.GetChatFromTesterAsync(ChatType.Private);
+        }
+        return chat;
     }
 }

@@ -1,46 +1,26 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
-using Telegram.Bot.Types;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Requests;
 
-// ReSharper disable once CheckNamespace
-namespace Telegram.Bot.Requests
+/// <summary>Use this method to get data for high score tables. Will return the score of the specified user and several of their neighbors in a game.<para>Returns: An Array of <see cref="GameHighScore"/> objects.</para></summary>
+/// <remarks>This method will currently return scores for the target user, plus two of their closest neighbors on each side. Will also return the top three users if the user and their neighbors are not among them. Please note that this behavior is subject to change.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
+public partial class GetGameHighScoresRequest() : RequestBase<GameHighScore[]>("getGameHighScores"), IChatTargetable, IUserTargetable
 {
-    /// <summary>
-    /// Get data for high score tables. Will return the score of the specified user and several of his neighbors in a game. On success, returns an array of <see cref="GameHighScore"/>.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class GetGameHighScoresRequest : RequestBase<GameHighScore[]>
-    {
-        /// <summary>
-        /// Unique identifier for the target chat
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public long ChatId { get; }
+    /// <summary>Target user id</summary>
+    [JsonPropertyName("user_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required long UserId { get; set; }
 
-        /// <summary>
-        /// User identifier
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int UserId { get; }
+    /// <summary>Unique identifier for the target chat.</summary>
+    [JsonPropertyName("chat_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required long ChatId { get; set; }
 
-        /// <summary>
-        /// Identifier of the sent message
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int MessageId { get; }
+    /// <summary>Identifier of the sent message.</summary>
+    [JsonPropertyName("message_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public required int MessageId { get; set; }
 
-        /// <summary>
-        /// Initializes a new request with userId, chatId and messageId
-        /// </summary>
-        /// <param name="userId">Target user id</param>
-        /// <param name="chatId">Unique identifier for the target chat</param>
-        /// <param name="messageId">Identifier of the sent message</param>
-        public GetGameHighScoresRequest(int userId, long chatId, int messageId)
-            : base("getGameHighScores")
-        {
-            UserId = userId;
-            ChatId = chatId;
-            MessageId = messageId;
-        }
-    }
+    /// <inheritdoc/>
+    ChatId IChatTargetable.ChatId => ChatId;
 }

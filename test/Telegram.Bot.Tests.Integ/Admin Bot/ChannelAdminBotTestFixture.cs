@@ -1,56 +1,49 @@
 using System.IO;
-using System.Threading.Tasks;
 using Telegram.Bot.Tests.Integ.Framework;
 using Telegram.Bot.Tests.Integ.Framework.Fixtures;
 using Telegram.Bot.Types;
-using Xunit;
 
-namespace Telegram.Bot.Tests.Integ.Admin_Bot
+namespace Telegram.Bot.Tests.Integ.Admin_Bot;
+
+public class ChannelAdminBotTestFixture : AsyncLifetimeFixture
 {
-    public class ChannelAdminBotTestFixture : IAsyncLifetime
+    ChannelChatFixture _channelChatFixture;
+    byte[] _oldChatPhoto;
+
+    public ChatFullInfo Chat => _channelChatFixture.ChannelChat;
+    public Message PinnedMessage { get; set; }
+
+
+    public ChannelAdminBotTestFixture(TestsFixture fixture)
     {
-        private readonly TestsFixture _fixture;
-        private byte[] _oldChatPhoto;
-
-        public Chat Chat { get; }
-        public Message PinnedMessage { get; set; }
-
-
-        public ChannelAdminBotTestFixture(TestsFixture fixture)
-        {
-            _fixture = fixture;
-            Chat = new ChannelChatFixture(fixture, Constants.TestCollections.ChannelAdminBots).ChannelChat;
-        }
-
-        public async Task InitializeAsync()
-        {
-            // Save existing chat photo as byte[] to restore it later because Bot API 4.4+ invalidates old
-            // file_ids after changing chat photo
-            if (!string.IsNullOrEmpty(Chat.Photo?.BigFileId))
+        AddLifetime(
+            initializer: async () =>
             {
-                using (MemoryStream stream = new MemoryStream())
+                _channelChatFixture = new(fixture, Constants.TestCollections.ChannelAdminBots);
+                await _channelChatFixture.InitializeAsync();
+                // Save existing chat photo as byte[] to restore it later because Bot API 4.4+ invalidates old
+                // file_ids after changing chat photo
+                if (!string.IsNullOrEmpty(Chat.Photo?.BigFileId))
                 {
-                    await _fixture.BotClient
-                        .GetInfoAndDownloadFileAsync(Chat.Photo.BigFileId, stream);
-
+                    await using MemoryStream stream = new();
+                    await fixture.BotClient.GetInfoAndDownloadFile(Chat.Photo.BigFileId, stream);
                     _oldChatPhoto = stream.ToArray();
                 }
-            }
-        }
-
-        public async Task DisposeAsync()
-        {
-            // If chat had a photo before, reset the photo back.
-            if (_oldChatPhoto != null)
+            },
+            finalizer: async () =>
             {
-                using (MemoryStream photoStream = new MemoryStream(_oldChatPhoto))
+                // If chat had a photo before, reset the photo back.
+                if (_oldChatPhoto is not null)
                 {
-                    await _fixture.BotClient.SetChatPhotoAsync(
+                    await using MemoryStream photoStream = new(_oldChatPhoto);
+                    await fixture.BotClient.WithStreams(photoStream).SetChatPhoto(
                         chatId: Chat.Id,
-                        photo: photoStream
+                        photo: InputFile.FromStream(photoStream)
                     );
                 }
+
+                await _channelChatFixture.DisposeAsync();
             }
-        }
+        );
     }
 }

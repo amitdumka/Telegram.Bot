@@ -1,36 +1,26 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types;
 
-namespace Telegram.Bot.Types
+/// <summary>This object represents a chat photo.</summary>
+public partial class ChatPhoto
 {
-    /// <summary>
-    /// Collection of fileIds of profile pictures of a chat.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class ChatPhoto
-    {
-        /// <summary>
-        /// File id of the big version of this <see cref="ChatPhoto"/>
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string BigFileId { get; set; }
+    /// <summary>File identifier of small (160x160) chat photo. This FileId can be used only for photo download and only for as long as the photo is not changed.</summary>
+    [JsonPropertyName("small_file_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string SmallFileId { get; set; } = default!;
 
-        /// <summary>
-        /// Unique file identifier of big (640x640) chat photo, which is supposed to be the same over time and for different bots. Can't be used to download or reuse the file.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string BigFileUniqueId { get; set; }
+    /// <summary>Unique file identifier of small (160x160) chat photo, which is supposed to be the same over time and for different bots. Can't be used to download or reuse the file.</summary>
+    [JsonPropertyName("small_file_unique_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string SmallFileUniqueId { get; set; } = default!;
 
-        /// <summary>
-        /// File id of the small version of this <see cref="ChatPhoto"/>
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string SmallFileId { get; set; }
+    /// <summary>File identifier of big (640x640) chat photo. This FileId can be used only for photo download and only for as long as the photo is not changed.</summary>
+    [JsonPropertyName("big_file_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string BigFileId { get; set; } = default!;
 
-        /// <summary>
-        /// Unique file identifier of small (160x160) chat photo, which is supposed to be the same over time and for different bots. Can't be used to download or reuse the file.
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public string SmallFileUniqueId { get; set; }
-    }
+    /// <summary>Unique file identifier of big (640x640) chat photo, which is supposed to be the same over time and for different bots. Can't be used to download or reuse the file.</summary>
+    [JsonPropertyName("big_file_unique_id")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public string BigFileUniqueId { get; set; } = default!;
 }

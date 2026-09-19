@@ -1,24 +1,14 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Serialization;
+// GENERATED FILE - DO NOT MODIFY MANUALLY
+namespace Telegram.Bot.Types;
 
-namespace Telegram.Bot.Types
+/// <summary>This object represents a voice note.</summary>
+public partial class Voice : FileBase
 {
-    /// <summary>
-    /// This object represents a voice note.
-    /// </summary>
-    [JsonObject(MemberSerialization.OptIn, NamingStrategyType = typeof(SnakeCaseNamingStrategy))]
-    public class Voice : FileBase
-    {
-        /// <summary>
-        /// Duration of the audio in seconds as defined by sender
-        /// </summary>
-        [JsonProperty(Required = Required.Always)]
-        public int Duration { get; set; }
+    /// <summary>Duration of the audio in seconds as defined by the sender</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
+    public int Duration { get; set; }
 
-        /// <summary>
-        /// Optional. MIME type of the file as defined by sender
-        /// </summary>
-        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Ignore)]
-        public string MimeType { get; set; }
-    }
+    /// <summary><em>Optional</em>. MIME type of the file as defined by the sender</summary>
+    [JsonPropertyName("mime_type")]
+    public string? MimeType { get; set; }
 }

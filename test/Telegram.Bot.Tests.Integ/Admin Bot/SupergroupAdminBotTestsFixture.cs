@@ -1,67 +1,72 @@
-using System;
+using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
 using Telegram.Bot.Tests.Integ.Framework;
+using Telegram.Bot.Tests.Integ.Framework.Fixtures;
 using Telegram.Bot.Types;
-using Xunit;
 
-namespace Telegram.Bot.Tests.Integ.Admin_Bot
+namespace Telegram.Bot.Tests.Integ.Admin_Bot;
+
+public class SupergroupAdminBotTestsFixture : AsyncLifetimeFixture
 {
-    public class SupergroupAdminBotTestsFixture : IAsyncLifetime
+    byte[] _oldChatPhoto;
+    ChatPermissions _existingDefaultPermissions;
+
+    public TestsFixture TestsFixture { get; }
+    public ChatFullInfo Chat => TestsFixture.SupergroupChat;
+    public List<Message> PinnedMessages { get; }
+    public ChatInviteLink ChatInviteLink { get; set; }
+
+    public SupergroupAdminBotTestsFixture(TestsFixture testsFixture)
     {
-        private byte[] _oldChatPhoto;
+        TestsFixture = testsFixture;
+        PinnedMessages = new(3);
 
-        public TestsFixture TestsFixture { get; }
-        public Chat Chat => TestsFixture.SupergroupChat;
-        public Message PinnedMessage { get; set; }
-        public ChatPermissions ExistingDefaultPermissions { get; private set; }
-
-        public SupergroupAdminBotTestsFixture(TestsFixture testsFixture)
-        {
-            TestsFixture = testsFixture;
-        }
-
-        public async Task InitializeAsync()
-        {
-            Chat chat = await TestsFixture.BotClient
-                .GetChatAsync(TestsFixture.SupergroupChat);
-
-            // Save existing chat photo as byte[] to restore it later because Bot API 4.4+ invalidates old
-            // file_ids after changing chat photo
-            if (!string.IsNullOrEmpty(chat.Photo?.BigFileId))
+        AddLifetime(
+            initializer: async () =>
             {
-                using (MemoryStream stream = new MemoryStream())
+                ChatFullInfo chat = await TestsFixture.BotClient.GetChat(TestsFixture.SupergroupChat);
+
+                // Save existing chat photo as byte[] to restore it later because Bot API 4.4+ invalidates old
+                // file_ids after changing chat photo
+                if (!string.IsNullOrEmpty(chat.Photo?.BigFileId))
                 {
-                    await TestsFixture.BotClient
-                        .GetInfoAndDownloadFileAsync(chat.Photo.BigFileId, stream);
+                    await using MemoryStream stream = new();
+                    await TestsFixture.BotClient.GetInfoAndDownloadFile(chat.Photo.BigFileId, stream);
 
                     _oldChatPhoto = stream.ToArray();
                 }
-            }
 
-            // Save default permissions so they can be restored
-            ExistingDefaultPermissions = chat.Permissions;
-        }
-
-        public async Task DisposeAsync()
-        {
-            // If chat had a photo before, reset the photo back.
-            if (_oldChatPhoto != null)
+                // Save default permissions so they can be restored
+                _existingDefaultPermissions = chat.Permissions!;
+            },
+            finalizer: async () =>
             {
-                using (MemoryStream photoStream = new MemoryStream(_oldChatPhoto))
+                // If chat had a photo before, reset the photo back.
+                if (_oldChatPhoto is not null)
                 {
-                    await TestsFixture.BotClient.SetChatPhotoAsync(
+                    await using MemoryStream photoStream = new(_oldChatPhoto);
+                    await TestsFixture.BotClient.WithStreams(photoStream).SetChatPhoto(
                         chatId: Chat.Id,
-                        photo: photoStream
+                        photo: InputFile.FromStream(photoStream)
+                    );
+                }
+
+                // Reset original default permissions
+                await TestsFixture.BotClient.SetChatPermissions(
+                    TestsFixture.SupergroupChat,
+                    _existingDefaultPermissions!
+
+                );
+
+                // Revoke invite link created during the test run
+                if (ChatInviteLink is not null)
+                {
+                    await TestsFixture.BotClient.RevokeChatInviteLink(
+                        chatId: TestsFixture.SupergroupChat,
+                        inviteLink: ChatInviteLink.InviteLink
                     );
                 }
             }
-
-            // Reset original default permissions
-            await TestsFixture.BotClient.SetChatPermissionsAsync(
-                TestsFixture.SupergroupChat,
-                ExistingDefaultPermissions
-            );
-        }
+        );
     }
 }

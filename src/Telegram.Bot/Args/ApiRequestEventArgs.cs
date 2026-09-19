@@ -1,21 +1,13 @@
-﻿using System;
-using System.Net.Http;
+namespace Telegram.Bot.Args;
 
-namespace Telegram.Bot.Args
+/// <summary>Provides data for MakingApiRequest event</summary>
+/// <param name="request"></param>
+/// <param name="httpRequestMessage"></param>
+public class ApiRequestEventArgs(IRequest request, HttpRequestMessage? httpRequestMessage = default) : EventArgs
 {
-    /// <summary>
-    /// Provides data for MakingApiRequest event
-    /// </summary>
-    public class ApiRequestEventArgs : EventArgs
-    {
-        /// <summary>
-        /// Bot API method name
-        /// </summary>
-        public string MethodName { get; internal set; }
+    /// <summary>Bot API Request</summary>
+    public IRequest Request { get; } = request;
 
-        /// <summary>
-        /// HTTP content of the request message
-        /// </summary>
-        public HttpContent HttpContent { get; internal set; }
-    }
+    /// <summary>HTTP Request Message</summary>
+    public HttpRequestMessage? HttpRequestMessage { get; } = httpRequestMessage;
 }

@@ -1,17 +1,11 @@
 using Telegram.Bot.Tests.Integ.Framework;
 using Telegram.Bot.Types;
 
-namespace Telegram.Bot.Tests.Integ.Polls
+namespace Telegram.Bot.Tests.Integ.Polls;
+
+public class AnonymousPollTestsFixture(TestsFixture testsFixture)
 {
-    public class AnonymousPollTestsFixture
-    {
-        public TestsFixture TestsFixture { get; }
+    public TestsFixture TestsFixture { get; } = testsFixture;
 
-        public Message PollMessage { get; set; }
-
-        public AnonymousPollTestsFixture(TestsFixture testsFixture)
-        {
-            TestsFixture = testsFixture;
-        }
-    }
+    public Message PollMessage { get; set; }
 }
